@@ -1,202 +1,0 @@
-=== 20_install_trigger_pkg ===
-Scenario: E 
-
-
-Attaching package: ‘renv’
-
-The following objects are masked from ‘package:stats’:
-
-    embed, update
-
-The following objects are masked from ‘package:utils’:
-
-    history, upgrade
-
-The following objects are masked from ‘package:base’:
-
-    autoload, load, remove, use
-
-Installing recipes...
-repos: https://packagemanager.posit.co/cran/__linux__/noble/latest 
-
-- Querying repositories for available source packages ... Done!
-The following package(s) will be installed:
-- cli          [3.6.6]
-- clock        [0.7.4]
-- cpp11        [0.5.5]
-- data.table   [1.18.4]
-- diagram      [1.6.5]
-- digest       [0.6.39]
-- dplyr        [1.2.1]
-- farver       [2.1.2]
-- future       [1.70.0]
-- future.apply [1.20.2]
-- generics     [0.1.4]
-- ggplot2      [4.0.3]
-- globals      [0.19.1]
-- glue         [1.8.1]
-- gower        [1.0.2]
-- gtable       [0.3.6]
-- hardhat      [1.4.3]
-- ipred        [0.9-15]
-- isoband      [0.3.0]
-- labeling     [0.4.3]
-- lava         [1.9.1]
-- lifecycle    [1.0.5]
-- listenv      [0.10.1]
-- lubridate    [1.9.5]
-- magrittr     [2.0.5]
-- numDeriv     [2016.8-1.1]
-- parallelly   [1.47.0]
-- pillar       [1.11.1]
-- pkgconfig    [2.0.3]
-- prodlim      [2026.03.11]
-- progressr    [0.19.0]
-- purrr        [1.2.2]
-- R6           [2.6.1]
-- RColorBrewer [1.1-3]
-- Rcpp         [1.1.1-1.1]
-- recipes      [1.3.2]
-- rlang        [1.2.0]
-- S7           [0.2.2]
-- scales       [1.4.0]
-- shape        [1.4.6.1]
-- sparsevctrs  [0.3.6]
-- SQUAREM      [2026.1]
-- stringi      [1.8.7]
-- stringr      [1.6.0]
-- tibble       [3.3.1]
-- tidyr        [1.3.2]
-- tidyselect   [1.2.1]
-- timechange   [0.4.0]
-- timeDate     [4052.112]
-- tzdb         [0.5.0]
-- utf8         [1.2.6]
-- vctrs        [0.7.3]
-- viridisLite  [0.4.3]
-- withr        [3.0.2]
-These packages will be installed into "/project/renv/library/linux-ubuntu-noble/R-4.4/x86_64-pc-linux-gnu".
-
-# Downloading packages -------------------------------------------------------
-[?25l  (0/54) Downloading: utf8, future, generics, tidyr, ...                                                                                                        [32m✔[0m utf8 1.2.6                               [152 kB in 0.86s]
-  (1/54) Downloading: future, generics, tidyr, shape, ...                                                                                                       [32m✔[0m generics 0.1.4                           [80 kB in 0.86s]
-  (2/54) Downloading: future, tidyr, shape, stringi, ...                                                                                                        [32m✔[0m scales 1.4.0                             [841 kB in 0.87s]
-  (3/54) Downloading: future, tidyr, shape, stringi, ...                                                                                                        [32m✔[0m magrittr 2.0.5                           [222 kB in 0.9s]
-  (4/54) Downloading: future, tidyr, shape, stringi, ...                                                                                                        [32m✔[0m RColorBrewer 1.1-3                       [52 kB in 0.91s]
-  (5/54) Downloading: future, tidyr, shape, stringi, ...                                                                                                        [32m✔[0m tidyr 1.3.2                              [1.2 MB in 0.94s]
-  (6/54) Downloading: future, shape, stringi, diagram, ...                                                                                                      [32m✔[0m listenv 0.10.1                           [125 kB in 0.96s]
-  (7/54) Downloading: future, shape, stringi, diagram, ...                                                                                                      [32m✔[0m timechange 0.4.0                         [175 kB in 0.97s]
-  (8/54) Downloading: future, shape, stringi, diagram, ...                                                                                                      [32m✔[0m cpp11 0.5.5                              [303 kB in 0.97s]
-  (9/54) Downloading: future, shape, stringi, diagram, ...                                                                                                      [32m✔[0m digest 0.6.39                            [230 kB in 0.98s]
-  (10/54) Downloading: future, shape, stringi, diagram, ...                                                                                                     [32m✔[0m future 1.70.0                            [982 kB in 0.99s]
-  (11/54) Downloading: shape, stringi, diagram, purrr, ...                                                                                                      [32m✔[0m purrr 1.2.2                              [554 kB in 1.0s]
-  (12/54) Downloading: shape, stringi, diagram, viridisLite, ...                                                                                                [32m✔[0m diagram 1.6.5                            [682 kB in 1.0s]
-  (13/54) Downloading: shape, stringi, viridisLite, numDeriv, ...                                                                                               [32m✔[0m numDeriv 2016.8-1.1                      [114 kB in 0.16s]
-  (14/54) Downloading: shape, stringi, viridisLite, isoband, ...                                                                                                [32m✔[0m viridisLite 0.4.3                        [1.3 MB in 1.1s]
-  (15/54) Downloading: shape, stringi, isoband, lava, ...                                                                                                       [32m✔[0m shape 1.4.6.1                            [750 kB in 1.1s]
-  (16/54) Downloading: stringi, isoband, lava, cli, ...                                                                                                         [32m✔[0m isoband 0.3.0                            [1.7 MB in 0.4s]
-  (17/54) Downloading: stringi, lava, cli, rlang, ...                                                                                                           [32m✔[0m future.apply 1.20.2                      [194 kB in 0.32s]
-  (18/54) Downloading: stringi, lava, cli, rlang, ...                                                                                                           [32m✔[0m withr 3.0.2                              [224 kB in 0.32s]
-  (19/54) Downloading: stringi, lava, cli, rlang, ...                                                                                                           [32m✔[0m SQUAREM 2026.1                           [178 kB in 0.39s]
-  (20/54) Downloading: stringi, lava, cli, rlang, ...                                                                                                           [32m✔[0m parallelly 1.47.0                        [619 kB in 0.46s]
-  (21/54) Downloading: stringi, lava, cli, rlang, ...                                                                                                           [32m✔[0m prodlim 2026.03.11                       [529 kB in 0.45s]
-  (22/54) Downloading: stringi, lava, cli, rlang, ...                                                                                                           [32m✔[0m rlang 1.2.0                              [1.6 MB in 0.53s]
-  (23/54) Downloading: stringi, lava, cli, hardhat, ...                                                                                                         [32m✔[0m lava 1.9.1                               [2.5 MB in 0.57s]
-  (24/54) Downloading: stringi, cli, hardhat, tzdb, ...                                                                                                         [32m✔[0m cli 3.6.6                                [1.3 MB in 0.55s]
-  (25/54) Downloading: stringi, hardhat, tzdb, dplyr, ...                                                                                                       [32m✔[0m tzdb 0.5.0                               [667 kB in 0.44s]
-  (26/54) Downloading: stringi, hardhat, dplyr, recipes, ...                                                                                                    [32m✔[0m hardhat 1.4.3                            [884 kB in 0.5s]
-  (27/54) Downloading: stringi, dplyr, recipes, ggplot2, ...                                                                                                    [32m✔[0m globals 0.19.1                           [166 kB in 0.38s]
-  (28/54) Downloading: stringi, dplyr, recipes, ggplot2, ...                                                                                                    [32m✔[0m stringi 1.8.7                            [3.3 MB in 1.5s]
-  (29/54) Downloading: dplyr, recipes, ggplot2, vctrs, ...                                                                                                      [32m✔[0m dplyr 1.2.1                              [1.5 MB in 0.58s]
-  (30/54) Downloading: recipes, ggplot2, vctrs, R6, ...                                                                                                         [32m✔[0m recipes 1.3.2                            [1.7 MB in 0.59s]
-  (31/54) Downloading: ggplot2, vctrs, R6, lifecycle, ...                                                                                                       [32m✔[0m R6 2.6.1                                 [87 kB in 0.48s]
-  (32/54) Downloading: ggplot2, vctrs, lifecycle, lubridate, ...                                                                                                [32m✔[0m lifecycle 1.0.5                          [132 kB in 0.48s]
-  (33/54) Downloading: ggplot2, vctrs, lubridate, stringr, ...                                                                                                  [32m✔[0m ggplot2 4.0.3                            [8.5 MB in 0.76s]
-  (34/54) Downloading: vctrs, lubridate, stringr, clock, ...                                                                                                    [32m✔[0m vctrs 0.7.3                              [1.9 MB in 0.6s]
-  (35/54) Downloading: lubridate, stringr, clock, pkgconfig, ...                                                                                                [32m✔[0m pkgconfig 2.0.3                          [18 kB in 0.42s]
-  (36/54) Downloading: lubridate, stringr, clock, sparsevctrs, ...                                                                                              [32m✔[0m gtable 0.3.6                             [223 kB in 0.44s]
-  (37/54) Downloading: lubridate, stringr, clock, sparsevctrs, ...                                                                                              [32m✔[0m lubridate 1.9.5                          [984 kB in 0.53s]
-  (38/54) Downloading: stringr, clock, sparsevctrs, progressr, ...                                                                                              [32m✔[0m stringr 1.6.0                            [333 kB in 0.49s]
-  (39/54) Downloading: clock, sparsevctrs, progressr, pillar, ...                                                                                               [32m✔[0m sparsevctrs 0.3.6                        [199 kB in 0.48s]
-  (40/54) Downloading: clock, progressr, pillar, data.table, ...                                                                                                [32m✔[0m glue 1.8.1                               [174 kB in 0.46s]
-  (41/54) Downloading: clock, progressr, pillar, data.table, ...                                                                                                [32m✔[0m progressr 0.19.0                         [516 kB in 0.5s]
-  (42/54) Downloading: clock, pillar, data.table, Rcpp, ...                                                                                                     [32m✔[0m pillar 1.11.1                            [660 kB in 0.53s]
-  (43/54) Downloading: clock, data.table, Rcpp, tibble, ...                                                                                                     [32m✔[0m Rcpp 1.1.1-1.1                           [2.2 MB in 0.49s]
-  (44/54) Downloading: clock, data.table, tibble, tidyselect, ...                                                                                               [32m✔[0m data.table 1.18.4                        [3.0 MB in 0.68s]
-  (45/54) Downloading: clock, tibble, tidyselect, farver, ...                                                                                                   [32m✔[0m tibble 3.3.1                             [648 kB in 0.54s]
-  (46/54) Downloading: clock, tidyselect, farver, labeling, ...                                                                                                 [32m✔[0m tidyselect 1.2.1                         [225 kB in 0.39s]
-  (47/54) Downloading: clock, farver, labeling, ipred, ...                                                                                                      [32m✔[0m clock 0.7.4                              [1.9 MB in 0.75s]
-  (48/54) Downloading: farver, labeling, ipred, timeDate, ...                                                                                                   [32m✔[0m labeling 0.4.3                           [61 kB in 0.36s]
-  (49/54) Downloading: farver, ipred, timeDate, gower, ...                                                                                                      [32m✔[0m ipred 0.9-15                             [384 kB in 0.34s]
-  (50/54) Downloading: farver, timeDate, gower, S7                                                                                                              [32m✔[0m timeDate 4052.112                        [1.5 MB in 0.38s]
-  (51/54) Downloading: farver, gower, S7                                                                                                                        [32m✔[0m gower 1.0.2                              [208 kB in 0.36s]
-  (52/54) Downloading: farver, S7                                                                                                                               [32m✔[0m S7 0.2.2                                 [326 kB in 0.39s]
-  (53/54) Downloading: farver                                                                                                                                   [32m✔[0m farver 2.1.2                             [1.5 MB in 0.54s]
-                                                                                Successfully downloaded 54 packages in 2.5 seconds.
-
-# Installing packages --------------------------------------------------------
-                                                                                [32m✔[0m cli 3.6.6                                [installed binary]
-                                                                                [32m✔[0m cpp11 0.5.5                              [installed binary]
-                                                                                [32m✔[0m data.table 1.18.4                        [installed binary]
-                                                                                [32m✔[0m digest 0.6.39                            [installed binary]
-                                                                                [32m✔[0m farver 2.1.2                             [installed binary]
-                                                                                [32m✔[0m generics 0.1.4                           [installed binary]
-                                                                                [32m✔[0m globals 0.19.1                           [installed binary]
-                                                                                [32m✔[0m glue 1.8.1                               [installed binary]
-                                                                                [32m✔[0m gower 1.0.2                              [installed binary]
-                                                                                [32m✔[0m labeling 0.4.3                           [installed binary]
-                                                                                [32m✔[0m listenv 0.10.1                           [installed binary]
-                                                                                [32m✔[0m magrittr 2.0.5                           [installed binary]
-                                                                                [32m✔[0m numDeriv 2016.8-1.1                      [installed binary]
-                                                                                [32m✔[0m parallelly 1.47.0                        [installed binary]
-                                                                                [32m✔[0m pkgconfig 2.0.3                          [installed binary]
-                                                                                [32m✔[0m R6 2.6.1                                 [installed binary]
-                                                                                [32m✔[0m RColorBrewer 1.1-3                       [installed binary]
-                                                                                [32m✔[0m Rcpp 1.1.1-1.1                           [installed binary]
-                                                                                [32m✔[0m rlang 1.2.0                              [installed binary]
-                                                                                [32m✔[0m S7 0.2.2                                 [installed binary]
-                                                                                [32m✔[0m shape 1.4.6.1                            [installed binary]
-                                                                                [32m✔[0m SQUAREM 2026.1                           [installed binary]
-                                                                                [32m✔[0m stringi 1.8.7                            [installed binary]
-                                                                                [32m✔[0m timeDate 4052.112                        [installed binary]
-                                                                                [32m✔[0m utf8 1.2.6                               [installed binary]
-                                                                                [32m✔[0m viridisLite 0.4.3                        [installed binary]
-                                                                                [32m✔[0m withr 3.0.2                              [installed binary]
-                                                                                [32m✔[0m timechange 0.4.0                         [installed binary]
-                                                                                [32m✔[0m tzdb 0.5.0                               [installed binary]
-                                                                                [32m✔[0m progressr 0.19.0                         [installed binary]
-                                                                                [32m✔[0m future 1.70.0                            [installed binary]
-                                                                                [32m✔[0m isoband 0.3.0                            [installed binary]
-                                                                                [32m✔[0m lifecycle 1.0.5                          [installed binary]
-                                                                                [32m✔[0m diagram 1.6.5                            [installed binary]
-                                                                                [32m✔[0m lubridate 1.9.5                          [installed binary]
-                                                                                [32m✔[0m future.apply 1.20.2                      [installed binary]
-                                                                                [32m✔[0m gtable 0.3.6                             [installed binary]
-                                                                                [32m✔[0m scales 1.4.0                             [installed binary]
-                                                                                [32m✔[0m vctrs 0.7.3                              [installed binary]
-                                                                                [32m✔[0m lava 1.9.1                               [installed binary]
-                                                                                [32m✔[0m clock 0.7.4                              [installed binary]
-                                                                                [32m✔[0m ggplot2 4.0.3                            [installed binary]
-                                                                                [32m✔[0m pillar 1.11.1                            [installed binary]
-                                                                                [32m✔[0m purrr 1.2.2                              [installed binary]
-                                                                                [32m✔[0m sparsevctrs 0.3.6                        [installed binary]
-                                                                                [32m✔[0m stringr 1.6.0                            [installed binary]
-                                                                                [32m✔[0m tidyselect 1.2.1                         [installed binary]
-                                                                                [32m✔[0m prodlim 2026.03.11                       [installed binary]
-                                                                                [32m✔[0m tibble 3.3.1                             [installed binary]
-                                                                                [32m✔[0m ipred 0.9-15                             [installed binary]
-                                                                                [32m✔[0m dplyr 1.2.1                              [installed binary]
-                                                                                [32m✔[0m hardhat 1.4.3                            [installed binary]
-                                                                                [32m✔[0m tidyr 1.3.2                              [installed binary]
-                                                                                [32m✔[0m recipes 1.3.2                            [installed binary]
-Successfully installed 54 packages in 14 seconds.
-[?25h
-Install result: success 
-
-recipes DESCRIPTION saved.
-biocViews field found: biocViews: mixOmics 
-
-Writing project.R with library(recipes)...
-project.R written.
-
-Done.

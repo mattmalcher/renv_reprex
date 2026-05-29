@@ -1,39 +1,0 @@
-[?25l[?25h- The project is out-of-sync -- use `renv::status()` for details.
-=== 25_install_biocversion ===
-Scenario: A 
-
-
-Attaching package: ‘renv’
-
-The following objects are masked from ‘package:stats’:
-
-    embed, update
-
-The following objects are masked from ‘package:utils’:
-
-    history, upgrade
-
-The following objects are masked from ‘package:base’:
-
-    autoload, load, remove, use
-
-Installing BiocVersion from Bioconductor to satisfy renv pre-flight check...
-repos: https://packagemanager.posit.co/cran/__linux__/noble/latest 
-
-- Querying repositories for available source packages ... Done!
-The following package(s) will be installed:
-- BiocVersion [3.20.0]
-These packages will be installed into "/project/renv/library/linux-ubuntu-noble/R-4.4/x86_64-pc-linux-gnu".
-
-# Downloading packages -------------------------------------------------------
-[?25l  (0/1) Downloading: BiocVersion                                                                                                                                [32m✔[0m BiocVersion 3.20.0                       [983 B in 0.36s]
-                                                                                Successfully downloaded 1 package in 0.56 seconds.
-
-# Installing packages --------------------------------------------------------
-  (0/1) Installing: BiocVersion                                                   (0/1) Installing: BiocVersion                                                                                                                                 [32m✔[0m BiocVersion 3.20.0                       [built from source in 0.65s]
-Successfully installed 1 package in 0.67 seconds.
-[?25h
-Install result: success 
-BiocVersion installed: Version: 3.20.0 
-
-Done.

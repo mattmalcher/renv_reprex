@@ -1,561 +1,0 @@
-[run_scenario A] No .Rprofile template for scenario A — renv::init() will create one
-[run_scenario A] Running 00_env_diagnostics...
-=== 00_env_diagnostics ===
-Scenario: A 
-
-Checking PPM: https://packagemanager.posit.co/cran/__linux__/noble/latest 
-PPM status: reachable (HTTP 400) 
-
-Checking Bioconductor: https://bioconductor.org 
-Bioconductor status: reachable (HTTP 200) 
-
-repos:
-                                                         CRAN 
-"https://packagemanager.posit.co/cran/__linux__/noble/latest" 
-
-BioC_mirror: (unset) 
-BIOCONDUCTOR_CONFIG_FILE: (unset) 
-R_BIOC_VERSION: (unset) 
-renv version: 1.2.3 
-
-Wrote env_diagnostics.json
-[run_scenario A] Running 10_init_project...
-=== 10_init_project ===
-Scenario: A 
-
-
-Attaching package: ‘renv’
-
-The following objects are masked from ‘package:stats’:
-
-    embed, update
-
-The following objects are masked from ‘package:utils’:
-
-    history, upgrade
-
-The following objects are masked from ‘package:base’:
-
-    autoload, load, remove, use
-
-renv version: 1.2.3 
-Working directory: /project 
-
-renv::init()
-
-The following package(s) will be updated in the lockfile:
-
-# RSPM -----------------------------------------------------------------------
-- renv   [* -> 1.2.3]
-
-The version of R recorded in the lockfile will be updated:
-- R      [* -> 4.4.2]
-
-- Lockfile written to "/project/renv.lock".
-
---- post-init lockfile ---
-{
-  "R": {
-    "Version": "4.4.2",
-    "Repositories": [
-      {
-        "Name": "CRAN",
-        "URL": "https://packagemanager.posit.co/cran/latest"
-      }
-    ]
-  },
-  "Packages": {
-    "renv": {
-      "Package": "renv",
-      "Version": "1.2.3",
-      "Source": "Repository",
-      "Type": "Package",
-      "Title": "Project Environments",
-      "Authors@R": "c( person(\"Kevin\", \"Ushey\", role = c(\"aut\", \"cre\"), email = \"kevin@rstudio.com\", comment = c(ORCID = \"0000-0003-2880-7407\")), person(\"Hadley\", \"Wickham\", role = c(\"aut\"), email = \"hadley@rstudio.com\", comment = c(ORCID = \"0000-0003-4757-117X\")), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\")) )",
-      "Description": "A dependency management toolkit for R. Using 'renv', you can create and manage project-local R libraries, save the state of these libraries to a 'lockfile', and later restore your library as required. Together, these tools can help make your projects more isolated, portable, and reproducible.",
-      "License": "MIT + file LICENSE",
-      "URL": "https://rstudio.github.io/renv/, https://github.com/rstudio/renv",
-      "BugReports": "https://github.com/rstudio/renv/issues",
-      "Imports": [
-        "utils"
-      ],
-      "Suggests": [
-        "BiocManager",
-        "cli",
-        "compiler",
-        "covr",
-        "cpp11",
-        "curl",
-        "devtools",
-        "generics",
-        "gitcreds",
-        "jsonlite",
-        "jsonvalidate",
-        "knitr",
-        "miniUI",
-        "modules",
-        "packrat",
-        "pak",
-        "R6",
-        "remotes",
-        "reticulate",
-        "rmarkdown",
-        "rstudioapi",
-        "shiny",
-        "testthat",
-        "uuid",
-        "waldo",
-        "yaml",
-        "webfakes"
-      ],
-      "Encoding": "UTF-8",
-      "RoxygenNote": "7.3.3",
-      "VignetteBuilder": "knitr",
-      "Config/Needs/website": "tidyverse/tidytemplate",
-      "Config/testthat/edition": "3",
-      "Config/testthat/parallel": "true",
-      "Config/testthat/start-first": "bioconductor,python,install,restore,snapshot,retrieve,remotes",
-      "NeedsCompilation": "no",
-      "Author": "Kevin Ushey [aut, cre] (ORCID: <https://orcid.org/0000-0003-2880-7407>), Hadley Wickham [aut] (ORCID: <https://orcid.org/0000-0003-4757-117X>), Posit Software, PBC [cph, fnd]",
-      "Maintainer": "Kevin Ushey <kevin@rstudio.com>",
-      "Repository": "RSPM"
-    }
-  }
-} 
-[1] TRUE
-
---- renv/settings.json ---
-{
-  "bioconductor.version": null,
-  "external.libraries": [],
-  "ignored.packages": [],
-  "lockfile.sanitize": true,
-  "package.dependency.fields": [
-    "Imports",
-    "Depends",
-    "LinkingTo"
-  ],
-  "ppm.enabled": null,
-  "ppm.ignored.urls": [],
-  "r.version": null,
-  "snapshot.dev": false,
-  "snapshot.type": "implicit",
-  "use.cache": true,
-  "vcs.ignore.cellar": true,
-  "vcs.ignore.library": true,
-  "vcs.ignore.local": true,
-  "vcs.manage.ignores": true
-} 
-[1] TRUE
-
-Done.
-[run_scenario A] Running 20_install_trigger_pkg...
-=== 20_install_trigger_pkg ===
-Scenario: A 
-
-
-Attaching package: ‘renv’
-
-The following objects are masked from ‘package:stats’:
-
-    embed, update
-
-The following objects are masked from ‘package:utils’:
-
-    history, upgrade
-
-The following objects are masked from ‘package:base’:
-
-    autoload, load, remove, use
-
-Installing recipes...
-repos: https://packagemanager.posit.co/cran/__linux__/noble/latest 
-
-- Querying repositories for available source packages ... Done!
-The following package(s) will be installed:
-- cli          [3.6.6]
-- clock        [0.7.4]
-- cpp11        [0.5.5]
-- data.table   [1.18.4]
-- diagram      [1.6.5]
-- digest       [0.6.39]
-- dplyr        [1.2.1]
-- farver       [2.1.2]
-- future       [1.70.0]
-- future.apply [1.20.2]
-- generics     [0.1.4]
-- ggplot2      [4.0.3]
-- globals      [0.19.1]
-- glue         [1.8.1]
-- gower        [1.0.2]
-- gtable       [0.3.6]
-- hardhat      [1.4.3]
-- ipred        [0.9-15]
-- isoband      [0.3.0]
-- labeling     [0.4.3]
-- lava         [1.9.1]
-- lifecycle    [1.0.5]
-- listenv      [0.10.1]
-- lubridate    [1.9.5]
-- magrittr     [2.0.5]
-- numDeriv     [2016.8-1.1]
-- parallelly   [1.47.0]
-- pillar       [1.11.1]
-- pkgconfig    [2.0.3]
-- prodlim      [2026.03.11]
-- progressr    [0.19.0]
-- purrr        [1.2.2]
-- R6           [2.6.1]
-- RColorBrewer [1.1-3]
-- Rcpp         [1.1.1-1.1]
-- recipes      [1.3.2]
-- rlang        [1.2.0]
-- S7           [0.2.2]
-- scales       [1.4.0]
-- shape        [1.4.6.1]
-- sparsevctrs  [0.3.6]
-- SQUAREM      [2026.1]
-- stringi      [1.8.7]
-- stringr      [1.6.0]
-- tibble       [3.3.1]
-- tidyr        [1.3.2]
-- tidyselect   [1.2.1]
-- timechange   [0.4.0]
-- timeDate     [4052.112]
-- tzdb         [0.5.0]
-- utf8         [1.2.6]
-- vctrs        [0.7.3]
-- viridisLite  [0.4.3]
-- withr        [3.0.2]
-These packages will be installed into "/project/renv/library/linux-ubuntu-noble/R-4.4/x86_64-pc-linux-gnu".
-
-# Downloading packages -------------------------------------------------------
-[?25l  (0/54) Downloading: utf8, future, generics, tidyr, ...                                                                                                        [32m✔[0m purrr 1.2.2                              [554 kB in 0.89s]
-  (1/54) Downloading: utf8, future, generics, tidyr, ...                                                                                                        [32m✔[0m viridisLite 0.4.3                        [1.3 MB in 0.97s]
-  (2/54) Downloading: utf8, future, generics, tidyr, ...                                                                                                        [32m✔[0m shape 1.4.6.1                            [750 kB in 0.98s]
-  (3/54) Downloading: utf8, future, generics, tidyr, ...                                                                                                        [32m✔[0m RColorBrewer 1.1-3                       [52 kB in 0.98s]
-  (4/54) Downloading: utf8, future, generics, tidyr, ...                                                                                                        [32m✔[0m listenv 0.10.1                           [125 kB in 0.99s]
-  (5/54) Downloading: utf8, future, generics, tidyr, ...                                                                                                        [32m✔[0m scales 1.4.0                             [841 kB in 1.0s]
-  (6/54) Downloading: utf8, future, generics, tidyr, ...                                                                                                        [32m✔[0m magrittr 2.0.5                           [222 kB in 1.0s]
-  (7/54) Downloading: utf8, future, generics, tidyr, ...                                                                                                        [32m✔[0m generics 0.1.4                           [80 kB in 1.0s]
-  (8/54) Downloading: utf8, future, tidyr, stringi, ...                                                                                                         [32m✔[0m timechange 0.4.0                         [175 kB in 1.0s]
-  (9/54) Downloading: utf8, future, tidyr, stringi, ...                                                                                                         [32m✔[0m utf8 1.2.6                               [152 kB in 1.0s]
-  (10/54) Downloading: future, tidyr, stringi, diagram, ...                                                                                                     [32m✔[0m digest 0.6.39                            [230 kB in 1.0s]
-  (11/54) Downloading: future, tidyr, stringi, diagram, ...                                                                                                     [32m✔[0m diagram 1.6.5                            [682 kB in 1.1s]
-  (12/54) Downloading: future, tidyr, stringi, cpp11, ...                                                                                                       [32m✔[0m numDeriv 2016.8-1.1                      [114 kB in 0.21s]
-  (13/54) Downloading: future, tidyr, stringi, cpp11, ...                                                                                                       [32m✔[0m cpp11 0.5.5                              [303 kB in 1.1s]
-  (14/54) Downloading: future, tidyr, stringi, isoband, ...                                                                                                     [32m✔[0m future 1.70.0                            [982 kB in 1.1s]
-  (15/54) Downloading: tidyr, stringi, isoband, lava, ...                                                                                                       [32m✔[0m tidyr 1.3.2                              [1.2 MB in 1.1s]
-  (16/54) Downloading: stringi, isoband, lava, cli, ...                                                                                                         [32m✔[0m stringi 1.8.7                            [3.3 MB in 1.2s]
-  (17/54) Downloading: isoband, lava, cli, rlang, ...                                                                                                           [32m✔[0m future.apply 1.20.2                      [194 kB in 0.32s]
-  (18/54) Downloading: isoband, lava, cli, rlang, ...                                                                                                           [32m✔[0m withr 3.0.2                              [224 kB in 0.34s]
-  (19/54) Downloading: isoband, lava, cli, rlang, ...                                                                                                           [32m✔[0m SQUAREM 2026.1                           [178 kB in 0.31s]
-  (20/54) Downloading: isoband, lava, cli, rlang, ...                                                                                                           [32m✔[0m globals 0.19.1                           [166 kB in 0.27s]
-  (21/54) Downloading: isoband, lava, cli, rlang, ...                                                                                                           [32m✔[0m isoband 0.3.0                            [1.7 MB in 0.48s]
-  (22/54) Downloading: lava, cli, rlang, hardhat, ...                                                                                                           [32m✔[0m parallelly 1.47.0                        [619 kB in 0.46s]
-  (23/54) Downloading: lava, cli, rlang, hardhat, ...                                                                                                           [32m✔[0m prodlim 2026.03.11                       [529 kB in 0.46s]
-  (24/54) Downloading: lava, cli, rlang, hardhat, ...                                                                                                           [32m✔[0m hardhat 1.4.3                            [884 kB in 0.51s]
-  (25/54) Downloading: lava, cli, rlang, tzdb, ...                                                                                                              [32m✔[0m cli 3.6.6                                [1.3 MB in 0.58s]
-  (26/54) Downloading: lava, rlang, tzdb, dplyr, ...                                                                                                            [32m✔[0m tzdb 0.5.0                               [667 kB in 0.51s]
-  (27/54) Downloading: lava, rlang, dplyr, recipes, ...                                                                                                         [32m✔[0m lava 1.9.1                               [2.5 MB in 0.65s]
-  (28/54) Downloading: rlang, dplyr, recipes, ggplot2, ...                                                                                                      [32m✔[0m rlang 1.2.0                              [1.6 MB in 0.66s]
-  (29/54) Downloading: dplyr, recipes, ggplot2, vctrs, ...                                                                                                      [32m✔[0m dplyr 1.2.1                              [1.5 MB in 0.56s]
-  (30/54) Downloading: recipes, ggplot2, vctrs, R6, ...                                                                                                         [32m✔[0m recipes 1.3.2                            [1.7 MB in 0.58s]
-  (31/54) Downloading: ggplot2, vctrs, R6, lifecycle, ...                                                                                                       [32m✔[0m R6 2.6.1                                 [87 kB in 0.37s]
-  (32/54) Downloading: ggplot2, vctrs, lifecycle, lubridate, ...                                                                                                [32m✔[0m lifecycle 1.0.5                          [132 kB in 0.35s]
-  (33/54) Downloading: ggplot2, vctrs, lubridate, stringr, ...                                                                                                  [32m✔[0m pkgconfig 2.0.3                          [18 kB in 0.35s]
-  (34/54) Downloading: ggplot2, vctrs, lubridate, stringr, ...                                                                                                  [32m✔[0m sparsevctrs 0.3.6                        [199 kB in 0.34s]
-  (35/54) Downloading: ggplot2, vctrs, lubridate, stringr, ...                                                                                                  [32m✔[0m stringr 1.6.0                            [333 kB in 0.46s]
-  (36/54) Downloading: ggplot2, vctrs, lubridate, clock, ...                                                                                                    [32m✔[0m lubridate 1.9.5                          [984 kB in 0.48s]
-  (37/54) Downloading: ggplot2, vctrs, clock, progressr, ...                                                                                                    [32m✔[0m vctrs 0.7.3                              [1.9 MB in 0.63s]
-  (38/54) Downloading: ggplot2, clock, progressr, pillar, ...                                                                                                   [32m✔[0m progressr 0.19.0                         [516 kB in 0.36s]
-  (39/54) Downloading: ggplot2, clock, pillar, gtable, ...                                                                                                      [32m✔[0m gtable 0.3.6                             [223 kB in 0.35s]
-  (40/54) Downloading: ggplot2, clock, pillar, data.table, ...                                                                                                  [32m✔[0m pillar 1.11.1                            [660 kB in 0.43s]
-  (41/54) Downloading: ggplot2, clock, data.table, glue, ...                                                                                                    [32m✔[0m glue 1.8.1                               [174 kB in 0.36s]
-  (42/54) Downloading: ggplot2, clock, data.table, Rcpp, ...                                                                                                    [32m✔[0m tibble 3.3.1                             [648 kB in 0.37s]
-  (43/54) Downloading: ggplot2, clock, data.table, Rcpp, ...                                                                                                    [32m✔[0m tidyselect 1.2.1                         [225 kB in 0.43s]
-  (44/54) Downloading: ggplot2, clock, data.table, Rcpp, ...                                                                                                    [32m✔[0m ggplot2 4.0.3                            [8.5 MB in 1.0s]
-  (45/54) Downloading: clock, data.table, Rcpp, farver, ...                                                                                                     [32m✔[0m clock 0.7.4                              [1.9 MB in 0.72s]
-  (46/54) Downloading: data.table, Rcpp, farver, labeling, ...                                                                                                  [32m✔[0m labeling 0.4.3                           [61 kB in 0.4s]
-  (47/54) Downloading: data.table, Rcpp, farver, ipred, ...                                                                                                     [32m✔[0m gower 1.0.2                              [208 kB in 0.38s]
-  (48/54) Downloading: data.table, Rcpp, farver, ipred, ...                                                                                                     [32m✔[0m ipred 0.9-15                             [384 kB in 0.42s]
-  (49/54) Downloading: data.table, Rcpp, farver, timeDate, ...                                                                                                  [32m✔[0m S7 0.2.2                                 [326 kB in 0.45s]
-  (50/54) Downloading: data.table, Rcpp, farver, timeDate                                                                                                       [32m✔[0m farver 2.1.2                             [1.5 MB in 0.59s]
-  (51/54) Downloading: data.table, Rcpp, timeDate                                                                                                               [32m✔[0m Rcpp 1.1.1-1.1                           [2.2 MB in 0.64s]
-  (52/54) Downloading: data.table, timeDate                                                                                                                     [32m✔[0m timeDate 4052.112                        [1.5 MB in 0.52s]
-  (53/54) Downloading: data.table                                                                                                                               [32m✔[0m data.table 1.18.4                        [3.0 MB in 0.73s]
-                                                                                Successfully downloaded 54 packages in 2.5 seconds.
-
-# Installing packages --------------------------------------------------------
-                                                                                [32m✔[0m cli 3.6.6                                [installed binary]
-                                                                                [32m✔[0m cpp11 0.5.5                              [installed binary]
-                                                                                [32m✔[0m data.table 1.18.4                        [installed binary]
-                                                                                [32m✔[0m digest 0.6.39                            [installed binary]
-                                                                                [32m✔[0m farver 2.1.2                             [installed binary]
-                                                                                [32m✔[0m generics 0.1.4                           [installed binary]
-                                                                                [32m✔[0m globals 0.19.1                           [installed binary]
-                                                                                [32m✔[0m glue 1.8.1                               [installed binary]
-                                                                                [32m✔[0m gower 1.0.2                              [installed binary]
-                                                                                [32m✔[0m labeling 0.4.3                           [installed binary]
-                                                                                [32m✔[0m listenv 0.10.1                           [installed binary]
-                                                                                [32m✔[0m magrittr 2.0.5                           [installed binary]
-                                                                                [32m✔[0m numDeriv 2016.8-1.1                      [installed binary]
-                                                                                [32m✔[0m parallelly 1.47.0                        [installed binary]
-                                                                                [32m✔[0m pkgconfig 2.0.3                          [installed binary]
-                                                                                [32m✔[0m R6 2.6.1                                 [installed binary]
-                                                                                [32m✔[0m RColorBrewer 1.1-3                       [installed binary]
-                                                                                [32m✔[0m Rcpp 1.1.1-1.1                           [installed binary]
-                                                                                [32m✔[0m rlang 1.2.0                              [installed binary]
-                                                                                [32m✔[0m S7 0.2.2                                 [installed binary]
-                                                                                [32m✔[0m shape 1.4.6.1                            [installed binary]
-                                                                                [32m✔[0m SQUAREM 2026.1                           [installed binary]
-                                                                                [32m✔[0m stringi 1.8.7                            [installed binary]
-                                                                                [32m✔[0m timeDate 4052.112                        [installed binary]
-                                                                                [32m✔[0m utf8 1.2.6                               [installed binary]
-                                                                                [32m✔[0m viridisLite 0.4.3                        [installed binary]
-                                                                                [32m✔[0m withr 3.0.2                              [installed binary]
-                                                                                [32m✔[0m timechange 0.4.0                         [installed binary]
-                                                                                [32m✔[0m tzdb 0.5.0                               [installed binary]
-                                                                                [32m✔[0m progressr 0.19.0                         [installed binary]
-                                                                                [32m✔[0m future 1.70.0                            [installed binary]
-                                                                                [32m✔[0m isoband 0.3.0                            [installed binary]
-                                                                                [32m✔[0m lifecycle 1.0.5                          [installed binary]
-                                                                                [32m✔[0m diagram 1.6.5                            [installed binary]
-                                                                                [32m✔[0m lubridate 1.9.5                          [installed binary]
-                                                                                [32m✔[0m future.apply 1.20.2                      [installed binary]
-                                                                                [32m✔[0m gtable 0.3.6                             [installed binary]
-                                                                                [32m✔[0m scales 1.4.0                             [installed binary]
-                                                                                [32m✔[0m vctrs 0.7.3                              [installed binary]
-                                                                                [32m✔[0m lava 1.9.1                               [installed binary]
-                                                                                [32m✔[0m clock 0.7.4                              [installed binary]
-                                                                                [32m✔[0m ggplot2 4.0.3                            [installed binary]
-                                                                                [32m✔[0m pillar 1.11.1                            [installed binary]
-                                                                                [32m✔[0m purrr 1.2.2                              [installed binary]
-                                                                                [32m✔[0m sparsevctrs 0.3.6                        [installed binary]
-                                                                                [32m✔[0m stringr 1.6.0                            [installed binary]
-                                                                                [32m✔[0m tidyselect 1.2.1                         [installed binary]
-                                                                                [32m✔[0m prodlim 2026.03.11                       [installed binary]
-                                                                                [32m✔[0m tibble 3.3.1                             [installed binary]
-                                                                                [32m✔[0m ipred 0.9-15                             [installed binary]
-                                                                                [32m✔[0m dplyr 1.2.1                              [installed binary]
-                                                                                [32m✔[0m hardhat 1.4.3                            [installed binary]
-                                                                                [32m✔[0m tidyr 1.3.2                              [installed binary]
-                                                                                [32m✔[0m recipes 1.3.2                            [installed binary]
-Successfully installed 54 packages in 14 seconds.
-[?25h
-Install result: success 
-
-recipes DESCRIPTION saved.
-biocViews field found: biocViews: mixOmics 
-
-Writing project.R with library(recipes)...
-project.R written.
-
-Done.
-[run_scenario A] Running 25_install_biocversion...
-[?25l[?25h- The project is out-of-sync -- use `renv::status()` for details.
-=== 25_install_biocversion ===
-Scenario: A 
-
-
-Attaching package: ‘renv’
-
-The following objects are masked from ‘package:stats’:
-
-    embed, update
-
-The following objects are masked from ‘package:utils’:
-
-    history, upgrade
-
-The following objects are masked from ‘package:base’:
-
-    autoload, load, remove, use
-
-Installing BiocVersion from Bioconductor to satisfy renv pre-flight check...
-repos: https://packagemanager.posit.co/cran/__linux__/noble/latest 
-
-- Querying repositories for available source packages ... Done!
-The following package(s) will be installed:
-- BiocVersion [3.20.0]
-These packages will be installed into "/project/renv/library/linux-ubuntu-noble/R-4.4/x86_64-pc-linux-gnu".
-
-# Downloading packages -------------------------------------------------------
-[?25l  (0/1) Downloading: BiocVersion                                                                                                                                [32m✔[0m BiocVersion 3.20.0                       [983 B in 0.36s]
-                                                                                Successfully downloaded 1 package in 0.56 seconds.
-
-# Installing packages --------------------------------------------------------
-  (0/1) Installing: BiocVersion                                                   (0/1) Installing: BiocVersion                                                                                                                                 [32m✔[0m BiocVersion 3.20.0                       [built from source in 0.65s]
-Successfully installed 1 package in 0.67 seconds.
-[?25h
-Install result: success 
-BiocVersion installed: Version: 3.20.0 
-
-Done.
-[run_scenario A] Running 30_snapshot...
-- The project is out-of-sync -- use `renv::status()` for details.
-=== 30_snapshot ===
-Scenario: A 
-
-
-Attaching package: ‘renv’
-
-The following objects are masked from ‘package:stats’:
-
-    embed, update
-
-The following objects are masked from ‘package:utils’:
-
-    history, upgrade
-
-The following objects are masked from ‘package:base’:
-
-    autoload, load, remove, use
-
-[1] TRUE
-Running renv::snapshot()...
-The following package(s) will be updated in the lockfile:
-
-# Bioconductor 3.20 ----------------------------------------------------------
-- BiocVersion    [* -> 3.20.0]
-
-# CRAN -----------------------------------------------------------------------
-- BiocManager    [* -> 1.30.27]
-- class          [* -> 7.3-22]
-- cli            [* -> 3.6.6]
-- clock          [* -> 0.7.4]
-- codetools      [* -> 0.2-20]
-- cpp11          [* -> 0.5.5]
-- data.table     [* -> 1.18.4]
-- diagram        [* -> 1.6.5]
-- digest         [* -> 0.6.39]
-- dplyr          [* -> 1.2.1]
-- farver         [* -> 2.1.2]
-- future         [* -> 1.70.0]
-- future.apply   [* -> 1.20.2]
-- generics       [* -> 0.1.4]
-- ggplot2        [* -> 4.0.3]
-- globals        [* -> 0.19.1]
-- glue           [* -> 1.8.1]
-- gower          [* -> 1.0.2]
-- gtable         [* -> 0.3.6]
-- hardhat        [* -> 1.4.3]
-- ipred          [* -> 0.9-15]
-- isoband        [* -> 0.3.0]
-- KernSmooth     [* -> 2.23-24]
-- labeling       [* -> 0.4.3]
-- lattice        [* -> 0.22-6]
-- lava           [* -> 1.9.1]
-- lifecycle      [* -> 1.0.5]
-- listenv        [* -> 0.10.1]
-- lubridate      [* -> 1.9.5]
-- magrittr       [* -> 2.0.5]
-- MASS           [* -> 7.3-61]
-- Matrix         [* -> 1.7-1]
-- nnet           [* -> 7.3-19]
-- numDeriv       [* -> 2016.8-1.1]
-- parallelly     [* -> 1.47.0]
-- pillar         [* -> 1.11.1]
-- pkgconfig      [* -> 2.0.3]
-- prodlim        [* -> 2026.03.11]
-- progressr      [* -> 0.19.0]
-- purrr          [* -> 1.2.2]
-- R6             [* -> 2.6.1]
-- RColorBrewer   [* -> 1.1-3]
-- Rcpp           [* -> 1.1.1-1.1]
-- rlang          [* -> 1.2.0]
-- rpart          [* -> 4.1.23]
-- S7             [* -> 0.2.2]
-- scales         [* -> 1.4.0]
-- shape          [* -> 1.4.6.1]
-- sparsevctrs    [* -> 0.3.6]
-- SQUAREM        [* -> 2026.1]
-- stringi        [* -> 1.8.7]
-- stringr        [* -> 1.6.0]
-- survival       [* -> 3.7-0]
-- tibble         [* -> 3.3.1]
-- tidyr          [* -> 1.3.2]
-- tidyselect     [* -> 1.2.1]
-- timechange     [* -> 0.4.0]
-- timeDate       [* -> 4052.112]
-- tzdb           [* -> 0.5.0]
-- utf8           [* -> 1.2.6]
-- vctrs          [* -> 0.7.3]
-- viridisLite    [* -> 0.4.3]
-- withr          [* -> 3.0.2]
-
-# RSPM -----------------------------------------------------------------------
-- recipes        [* -> 1.3.2]
-
-- Lockfile written to "/project/renv.lock".
-Snapshot result: success 
-
-Lockfile has Bioconductor refs: TRUE 
-
-Done.
-[run_scenario A] Running 60_startup_check...
-=== 60_startup_check ===
-Scenario: A 
-
-[1] TRUE
-Simulating fresh R session startup (renv::load)...
-Startup result: success 
-
-repos after load: https://packagemanager.posit.co/cran/__linux__/noble/latest, https://bioconductor.org/packages/3.20/bioc, https://bioconductor.org/packages/3.20/data/annotation, https://bioconductor.org/packages/3.20/data/experiment, https://bioconductor.org/packages/3.20/workflows, https://bioconductor.org/packages/3.20/books 
-BioC_mirror after load: (unset) 
-
-Lockfile has Bioconductor refs after startup: TRUE 
-settings.json has bioconductor.version: TRUE 
-
-Done.
-[run_scenario A] Running 50_restore...
-=== 50_restore ===
-Scenario: A 
-
-
-Attaching package: ‘renv’
-
-The following objects are masked from ‘package:stats’:
-
-    embed, update
-
-The following objects are masked from ‘package:utils’:
-
-    history, upgrade
-
-The following objects are masked from ‘package:base’:
-
-    autoload, load, remove, use
-
-[1] TRUE
-Running renv::restore()...
-- The library is already synchronized with the lockfile.
-Restore result: success 
-
-Lockfile has Bioconductor refs after restore: TRUE 
-
-Done.
-[run_scenario A] Running 70_collect_artifacts (no-init-file)...
-=== 70_collect_artifacts ===
-Scenario: A 
-
-Saved renv.lock → /artifacts/A/renv.lock 
-Saved renv/settings.json → /artifacts/A/settings.json 
-Wrote scenario_result.json
-
-Outcome summary:
-{
-  "scenario_name": "A",
-  "ppm_access": true,
-  "bioc_access": true,
-  "lockfile_has_bioc_refs": true,
-  "settings_has_bioc_version": false,
-  "startup_status": "success",
-  "snapshot_status": "success",
-  "restore_status": "success",
-  "lockfile_reintroduced_by": null,
-  "key_error_message": null
-} 
-
-Done.
-[run_scenario A] Done.

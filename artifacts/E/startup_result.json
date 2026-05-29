@@ -1,9 +1,0 @@
-{
-  "result": "success",
-  "bioc_refs": false,
-  "bioc_version_set": true,
-  "repos_after_load": {
-    "CRAN": "https://packagemanager.posit.co/cran/__linux__/noble/latest"
-  },
-  "BioC_mirror": null
-}
