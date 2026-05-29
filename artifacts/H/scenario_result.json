@@ -1,0 +1,12 @@
+{
+  "scenario_name": "H",
+  "ppm_access": true,
+  "bioc_access": false,
+  "lockfile_has_bioc_refs": false,
+  "settings_has_bioc_version": false,
+  "startup_status": "success",
+  "snapshot_status": "failure",
+  "restore_status": "success",
+  "lockfile_reintroduced_by": "none",
+  "key_error_message": "ERROR: invalid version specification ‘unknown version: Bioconductor version cannot be validated; no internet connection?"
+}

@@ -1,0 +1,9 @@
+=== 40_patch_lockfile ===
+Scenario: H 
+
+Bioc refs before patch: TRUE 
+Removing lock$Bioconductor section
+Removing 4 Bioconductor repo(s) from R$Repositories
+Bioc refs after patch: FALSE 
+
+Done.

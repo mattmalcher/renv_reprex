@@ -1,0 +1,33 @@
+- The project is out-of-sync -- use `renv::status()` for details.
+- The project is out-of-sync -- use `renv::status()` for details.
+=== 30_snapshot ===
+Scenario: E 
+
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+[1] TRUE
+Running renv::snapshot()...
+One or more Bioconductor packages are used in your project,
+but the BiocManager package is not available.
+
+Consider installing BiocManager before snapshot.
+
+[?25l[?25hWARNING: URL 'https://bioconductor.org/config.yaml': status was 'Couldn't connect to server' 
+Snapshot result: warning 
+
+Lockfile has Bioconductor refs: FALSE 
+
+Done.

@@ -1,0 +1,16 @@
+- The project is out-of-sync -- use `renv::status()` for details.
+=== 60_startup_check ===
+Scenario: A 
+
+[1] TRUE
+Simulating fresh R session startup (renv::load)...
+- The project is out-of-sync -- use `renv::status()` for details.
+Startup result: success 
+
+repos after load: https://packagemanager.posit.co/cran/__linux__/noble/latest 
+BioC_mirror after load: (unset) 
+
+Lockfile has Bioconductor refs after startup: FALSE 
+settings.json has bioconductor.version: TRUE 
+
+Done.

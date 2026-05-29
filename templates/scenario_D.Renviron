@@ -1,0 +1,3 @@
+# Scenario D: pin Bioconductor version via environment variable only
+# R 4.4 → Bioconductor 3.20
+R_BIOC_VERSION=3.20

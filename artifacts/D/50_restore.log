@@ -1,0 +1,27 @@
+- The project is out-of-sync -- use `renv::status()` for details.
+=== 50_restore ===
+Scenario: D 
+
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+[1] TRUE
+Running renv::restore()...
+- The library is already synchronized with the lockfile.
+Restore result: success 
+
+Lockfile has Bioconductor refs after restore: FALSE 
+
+Done.

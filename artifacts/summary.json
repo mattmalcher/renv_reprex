@@ -1,0 +1,98 @@
+{
+  "A": {
+    "scenario_name": "A",
+    "ppm_access": true,
+    "bioc_access": true,
+    "lockfile_has_bioc_refs": false,
+    "settings_has_bioc_version": false,
+    "startup_status": "success",
+    "snapshot_status": "failure",
+    "restore_status": "success",
+    "lockfile_reintroduced_by": {},
+    "key_error_message": "ERROR: aborting snapshot due to pre-flight validation failure "
+  },
+  "B": {
+    "scenario_name": "B",
+    "ppm_access": true,
+    "bioc_access": false,
+    "lockfile_has_bioc_refs": false,
+    "settings_has_bioc_version": false,
+    "startup_status": "success",
+    "snapshot_status": "failure",
+    "restore_status": "success",
+    "lockfile_reintroduced_by": {},
+    "key_error_message": "ERROR: invalid version specification ‘unknown version: Bioconductor version cannot be validated; no internet connection?"
+  },
+  "C": {
+    "scenario_name": "C",
+    "ppm_access": true,
+    "bioc_access": false,
+    "lockfile_has_bioc_refs": false,
+    "settings_has_bioc_version": false,
+    "startup_status": "success",
+    "snapshot_status": "failure",
+    "restore_status": "success",
+    "lockfile_reintroduced_by": {},
+    "key_error_message": "ERROR: aborting snapshot due to pre-flight validation failure "
+  },
+  "D": {
+    "scenario_name": "D",
+    "ppm_access": true,
+    "bioc_access": false,
+    "lockfile_has_bioc_refs": false,
+    "settings_has_bioc_version": false,
+    "startup_status": "success",
+    "snapshot_status": "failure",
+    "restore_status": "success",
+    "lockfile_reintroduced_by": {},
+    "key_error_message": "ERROR: aborting snapshot due to pre-flight validation failure "
+  },
+  "E": {
+    "scenario_name": "E",
+    "ppm_access": true,
+    "bioc_access": false,
+    "lockfile_has_bioc_refs": false,
+    "settings_has_bioc_version": true,
+    "startup_status": "success",
+    "snapshot_status": "warning",
+    "restore_status": "success",
+    "lockfile_reintroduced_by": {},
+    "key_error_message": {}
+  },
+  "F": {
+    "scenario_name": "F",
+    "ppm_access": true,
+    "bioc_access": false,
+    "lockfile_has_bioc_refs": false,
+    "settings_has_bioc_version": false,
+    "startup_status": "success",
+    "snapshot_status": "failure",
+    "restore_status": "success",
+    "lockfile_reintroduced_by": {},
+    "key_error_message": "ERROR: aborting snapshot due to pre-flight validation failure "
+  },
+  "G": {
+    "scenario_name": "G",
+    "ppm_access": true,
+    "bioc_access": false,
+    "lockfile_has_bioc_refs": false,
+    "settings_has_bioc_version": false,
+    "startup_status": "success",
+    "snapshot_status": "failure",
+    "restore_status": "success",
+    "lockfile_reintroduced_by": {},
+    "key_error_message": "ERROR: invalid version specification ‘unknown version: Bioconductor version map cannot be validated; is it misconfigured?"
+  },
+  "H": {
+    "scenario_name": "H",
+    "ppm_access": true,
+    "bioc_access": false,
+    "lockfile_has_bioc_refs": false,
+    "settings_has_bioc_version": false,
+    "startup_status": "success",
+    "snapshot_status": "failure",
+    "restore_status": "success",
+    "lockfile_reintroduced_by": "none",
+    "key_error_message": "ERROR: invalid version specification ‘unknown version: Bioconductor version cannot be validated; no internet connection?"
+  }
+}

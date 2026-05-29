@@ -1,0 +1,22 @@
+=== 70_collect_artifacts ===
+Scenario: C 
+
+Saved renv.lock → /artifacts/C/renv.lock 
+Saved renv/settings.json → /artifacts/C/settings.json 
+Wrote scenario_result.json
+
+Outcome summary:
+{
+  "scenario_name": "C",
+  "ppm_access": true,
+  "bioc_access": false,
+  "lockfile_has_bioc_refs": false,
+  "settings_has_bioc_version": true,
+  "startup_status": "success",
+  "snapshot_status": "failure",
+  "restore_status": "success",
+  "lockfile_reintroduced_by": null,
+  "key_error_message": null
+} 
+
+Done.

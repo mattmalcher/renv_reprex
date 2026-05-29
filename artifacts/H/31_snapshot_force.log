@@ -1,0 +1,15 @@
+[?25l[?25h- The project is out-of-sync -- use `renv::status()` for details.
+=== 31_snapshot_force ===
+Scenario: H 
+
+Constructing synthetic lockfile with Bioconductor refs.
+This simulates the lockfile a developer on an open network would produce
+when recipes' biocViews causes renv to inject Bioc repos.
+
+[1] TRUE
+Bioconductor refs present after injection: TRUE 
+Bioconductor section: {"Version":"3.20"} 
+Repo count: 5 
+[1] TRUE
+
+Done.

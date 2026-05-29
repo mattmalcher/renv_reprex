@@ -1,0 +1,4 @@
+{
+  "result": "error: invalid version specification ‘unknown version: Bioconductor version map cannot be validated; is it misconfigured?\n    See #troubleshooting section in vignette’",
+  "bioc_refs": false
+}
