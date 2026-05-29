@@ -1,6 +1,6 @@
 # renv / Bioconductor Failure Mode Report
 
-Generated: 2026-05-29 13:25:51 UTC
+Generated: 2026-05-29 13:48:27 UTC
 
 ---
 
@@ -19,7 +19,7 @@ Generated: 2026-05-29 13:25:51 UTC
 
 | Scenario | Bioc blocked | PPM ok | Bioc refs in lock | Startup | Snapshot | Restore | Re-introduced by |
 |---|---|---|---|---|---|---|---|
-| **A** Control (open network) | No | Yes | No | success | failure | success | — |
+| **A** Control (open network) | No | Yes | Yes | success | success | success | — |
 | **B** Blocked, default config | Yes | Yes | No | success | failure | success | — |
 | **C** Blocked + renv.bioconductor.repos=character(0) | Yes | Yes | No | success | failure | success | — |
 | **D** Blocked + R_BIOC_VERSION env var | Yes | Yes | No | success | failure | success | — |
@@ -37,9 +37,10 @@ Generated: 2026-05-29 13:25:51 UTC
 **PPM reachable**: Yes
 **Bioconductor reachable**: Yes
 
-**Lockfile**: No Bioconductor section or repos.
-
-**Key error**: `ERROR: aborting snapshot due to pre-flight validation failure `
+**Bioconductor-related lockfile entries:**
+```
+Bioconductor.Version: 3.20
+```
 
 ### Scenario B: Blocked, default config
 
@@ -126,20 +127,19 @@ Generated: 2026-05-29 13:25:51 UTC
 
 The `recipes` CRAN package includes a `biocViews: mixOmics` field in its DESCRIPTION.
 renv 1.2.3 treats any installed package with `biocViews` as a Bioconductor package.
-This triggers two distinct failure paths in `renv::snapshot()`:
+This triggers a failure path in `renv::snapshot()` when Bioconductor is unreachable:
 
-1. **Open network (Scenario A):** renv's pre-flight check requires `BiocVersion` to be
-   installed before snapshotting any project that contains a biocViews package.
-   `BiocVersion` is only available from Bioconductor, not from PPM.
-   Error: `aborting snapshot due to pre-flight validation failure`
+- **Open network (Scenario A, baseline):** Succeeds when `BiocVersion` is installed from
+  Bioconductor before snapshotting. renv's pre-flight check requires `BiocVersion` to be
+  present; with the network open it can be fetched directly.
 
-2. **Bioc-blocked network (Scenario B):** renv calls BiocManager to validate/resolve
-   the Bioconductor version before snapshot. With bioconductor.org unreachable,
-   BiocManager cannot validate and snapshot aborts.
-   Error: `Bioconductor version cannot be validated; no internet connection?`
+- **Bioc-blocked network (Scenario B):** renv calls BiocManager to validate/resolve
+  the Bioconductor version before snapshot. With bioconductor.org unreachable,
+  BiocManager cannot validate and snapshot aborts.
+  Error: `Bioconductor version cannot be validated; no internet connection?`
 
-Neither failure requires the user to have explicitly opted into Bioconductor.
-Simply having `recipes` in `project.R` is sufficient to trigger it.
+The failure does not require the user to have explicitly opted into Bioconductor.
+Simply having `recipes` in `project.R` is sufficient to trigger it on a blocked network.
 
 ### Snapshot failure by scenario
 

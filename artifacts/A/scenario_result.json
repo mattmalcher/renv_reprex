@@ -2,11 +2,11 @@
   "scenario_name": "A",
   "ppm_access": true,
   "bioc_access": true,
-  "lockfile_has_bioc_refs": false,
+  "lockfile_has_bioc_refs": true,
   "settings_has_bioc_version": false,
   "startup_status": "success",
-  "snapshot_status": "failure",
+  "snapshot_status": "success",
   "restore_status": "success",
   "lockfile_reintroduced_by": null,
-  "key_error_message": "ERROR: aborting snapshot due to pre-flight validation failure "
+  "key_error_message": null
 }

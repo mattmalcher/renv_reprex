@@ -1,4 +1,3 @@
-- The project is out-of-sync -- use `renv::status()` for details.
 === 50_restore ===
 Scenario: A 
 
@@ -22,6 +21,6 @@ Running renv::restore()...
 - The library is already synchronized with the lockfile.
 Restore result: success 
 
-Lockfile has Bioconductor refs after restore: FALSE 
+Lockfile has Bioconductor refs after restore: TRUE 
 
 Done.

@@ -82,14 +82,15 @@ case "$SCENARIO" in
     ;;
 
   A)
-    # Scenario A: open network, no explicit bioconductor arg.
-    # Shows the natural failure: recipes' biocViews causes renv to require BiocVersion,
-    # which is not installable from PPM alone.
+    # Scenario A: open network, baseline that should succeed.
+    # BiocVersion is installed explicitly (Bioc is reachable) to satisfy renv's
+    # pre-flight check before snapshot.
     setup_rprofile
     setup_renviron
     run_r /scripts/00_env_diagnostics.R
     run_r /scripts/10_init_project.R
     run_r /scripts/20_install_trigger_pkg.R
+    run_r /scripts/25_install_biocversion.R
     run_r /scripts/30_snapshot.R       || true
     run_r /scripts/60_startup_check.R  || true
     run_r /scripts/50_restore.R        || true
