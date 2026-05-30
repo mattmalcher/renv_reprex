@@ -1,9 +1,0 @@
-{
-  "result": "success",
-  "bioc_refs": false,
-  "biocmanager_discovered": false,
-  "biocversion_discovered": false,
-  "snapshot_status": "success",
-  "snapshot_error_classification": null,
-  "renv_lock_written": true
-}

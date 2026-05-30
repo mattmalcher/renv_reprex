@@ -1,37 +1,0 @@
-=== 20_install_fixture ===
-Scenario: 5 
-Fixture: cranlike-no-biocviews 
-
-
-Attaching package: ‘renv’
-
-The following objects are masked from ‘package:stats’:
-
-    embed, update
-
-The following objects are masked from ‘package:utils’:
-
-    history, upgrade
-
-The following objects are masked from ‘package:base’:
-
-    autoload, load, remove, use
-
-Installing nobiocviews from: /fixtures/cranlike-no-biocviews 
-The following package(s) will be installed:
-- nobiocviews [0.1.0]
-These packages will be installed into "/project/renv/library/linux-ubuntu-noble/R-4.4/x86_64-pc-linux-gnu".
-
-# Downloading packages -------------------------------------------------------
-[32m✔[0m nobiocviews 0.1.0                       
-Successfully downloaded 1 package in 3.5 milliseconds.
-
-# Installing packages --------------------------------------------------------
-[?25l  (0/1) Installing: nobiocviews                                                   (0/1) Installing: nobiocviews                                                                                                                                 [32m✔[0m nobiocviews 0.1.0                        [built from source in 0.83s]
-Successfully installed 1 package in 0.84 seconds.
-[?25h
-Install result: success 
-Wrote project.R: library( nobiocviews )
-[1] TRUE
-
-Done.

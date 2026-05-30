@@ -1,7 +1,0 @@
-=== 70_collect_artifacts ===
-Scenario: REPORT 
-
-Wrote summary.json
-Wrote artifacts/report.md
-
-Done.
