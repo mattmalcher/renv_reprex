@@ -29,7 +29,6 @@ result <- tryCatch({
 })
 
 cat("\nInstall result:", result, "\n")
-writeLines(result, file.path(out_dir, "install_pkg_result.txt"))
 
 # Write project.R so renv discovers the package as a project dependency
 writeLines(paste0("library(", package, ")"), "project.R")

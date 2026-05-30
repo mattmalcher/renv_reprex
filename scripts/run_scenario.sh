@@ -5,7 +5,7 @@ set -euo pipefail
 SCENARIO="${1:-${SCENARIO:-unknown}}"
 export SCENARIO
 
-# Two-phase scenarios (4, 6-9) pass PHASE=install or PHASE=snapshot from the host.
+# Two-phase scenarios (4, 6, 7) pass PHASE=install or PHASE=snapshot from the host.
 # Scenario 5 and discovery scenarios (1-3) run single-phase and ignore PHASE.
 PHASE="${PHASE:-}"
 
@@ -20,17 +20,12 @@ run_r() {
   local label
   label="$(basename "$script" .R)"
   log "Running ${label}..."
-  timeout 300 Rscript --no-save --no-restore "$script" 2>&1 | tee "${OUT}/${label}.log" || {
-    local rc=${PIPESTATUS[0]}
-    if [ "$rc" -eq 124 ]; then
-      echo "TIMEOUT" > "${OUT}/${label}.status"
-    else
-      echo "ERROR:${rc}" > "${OUT}/${label}.status"
-    fi
+  timeout 300 Rscript --no-save --no-restore \
+    -e "source('${script}', echo=TRUE, max.deparse.length=Inf)" || {
+    local rc=$?
     log "Script ${label} exited with status ${rc}"
     return "$rc"
   }
-  echo "OK" > "${OUT}/${label}.status"
 }
 
 run_r_noenv() {
@@ -38,17 +33,12 @@ run_r_noenv() {
   local label
   label="$(basename "$script" .R)"
   log "Running ${label} (no-init-file)..."
-  timeout 300 Rscript --no-save --no-restore --no-init-file "$script" 2>&1 | tee "${OUT}/${label}.log" || {
-    local rc=${PIPESTATUS[0]}
-    if [ "$rc" -eq 124 ]; then
-      echo "TIMEOUT" > "${OUT}/${label}.status"
-    else
-      echo "ERROR:${rc}" > "${OUT}/${label}.status"
-    fi
+  timeout 300 Rscript --no-save --no-restore --no-init-file \
+    -e "source('${script}', echo=TRUE, max.deparse.length=Inf)" || {
+    local rc=$?
     log "Script ${label} exited with status ${rc}"
     return "$rc"
   }
-  echo "OK" > "${OUT}/${label}.status"
 }
 
 setup_rprofile() {
@@ -65,9 +55,6 @@ cd "$PROJ"
 
 case "$SCENARIO" in
 
-  REPORT)
-    exec Rscript --no-save --no-restore --no-init-file /scripts/70_collect_artifacts.R
-    ;;
 
   1)
     # Dependency discovery without biocViews — baseline, no snapshot
@@ -149,33 +136,6 @@ case "$SCENARIO" in
     fi
     ;;
 
-  8)
-    # Workaround: stub renv.bioconductor.repos pointing at PPM root
-    if [ "$PHASE" = "install" ]; then
-      setup_rprofile
-      export PACKAGE=metaRNASeq
-      run_r /scripts/10_init_project.R
-      run_r /scripts/20_install_pkg.R
-    elif [ "$PHASE" = "snapshot" ]; then
-      run_r /scripts/00_env_diagnostics.R
-      run_r /scripts/30_snapshot.R || true
-      run_r_noenv /scripts/70_collect_artifacts.R
-    fi
-    ;;
-
-  9)
-    # Workaround: renv.bioconductor.repos pointing at CRAN PPM URL
-    if [ "$PHASE" = "install" ]; then
-      setup_rprofile
-      export PACKAGE=metaRNASeq
-      run_r /scripts/10_init_project.R
-      run_r /scripts/20_install_pkg.R
-    elif [ "$PHASE" = "snapshot" ]; then
-      run_r /scripts/00_env_diagnostics.R
-      run_r /scripts/30_snapshot.R || true
-      run_r_noenv /scripts/70_collect_artifacts.R
-    fi
-    ;;
 
   *)
     log "Unknown scenario: ${SCENARIO}"

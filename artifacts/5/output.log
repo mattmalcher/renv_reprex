@@ -1,0 +1,602 @@
+[run_scenario 5] No .Rprofile template for scenario 5 — renv::init() will create one
+[run_scenario 5] Running 00_env_diagnostics...
+
+> `%||%` <- function(x, y) if (is.null(x) || (length(x) == 
++     1 && is.na(x))) y else x
+
+> scenario <- Sys.getenv("SCENARIO", "unknown")
+
+> out_dir <- file.path("/artifacts", scenario)
+
+> dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+
+> cat("=== 00_env_diagnostics ===\n")
+=== 00_env_diagnostics ===
+
+> cat("Scenario:", scenario, "\n\n")
+Scenario: 5 
+
+
+> check_url_curl <- function(url, timeout_s = 10) {
++     args <- c("-s", "-o", "/dev/null", "-w", "%{http_code}", 
++         "--connect-timeout", as.character(timeout_s), "--max-time", 
++         as.character(timeout_s), url)
++     result <- tryCatch({
++         code <- as.integer(system2("curl", args, stdout = TRUE, 
++             stderr = FALSE))
++         if (!is.na(code) && code > 0) 
++             paste0("reachable (HTTP ", code, ")")
++         else "blocked: no HTTP response"
++     }, error = function(e) paste0("error: ", conditionMessage(e)))
++     result
++ }
+
+> ppm_url <- Sys.getenv("PPM_URL", "https://packagemanager.posit.co/cran/__linux__/noble/latest")
+
+> bioc_url <- "https://bioconductor.org"
+
+> cat("Checking PPM:", ppm_url, "\n")
+Checking PPM: https://packagemanager.posit.co/cran/__linux__/noble/latest 
+
+> ppm_status <- check_url_curl(ppm_url)
+
+> cat("PPM status:", ppm_status, "\n\n")
+PPM status: reachable (HTTP 400) 
+
+
+> cat("Checking Bioconductor:", bioc_url, "\n")
+Checking Bioconductor: https://bioconductor.org 
+
+> bioc_status <- check_url_curl(bioc_url)
+
+> cat("Bioconductor status:", bioc_status, "\n\n")
+Bioconductor status: blocked: no HTTP response 
+
+
+> renv_ver <- tryCatch(as.character(packageVersion("renv")), 
++     error = function(e) "not installed")
+
+> info <- list(scenario = scenario, r_version = R.version$version.string, 
++     renv_version = renv_ver, repos = getOption("repos"), BioC_mirror = getOption("BioC_mirror"), 
++     BIOCONDUCTOR_CONFIG_FILE = getOption("BIOCONDUCTOR_CONFIG_FILE"), 
++     R_BIOC_VERSION = Sys.getenv("R_BIOC_VERSION"), ppm_access = grepl("^reachable", 
++         ppm_status), bioc_access = grepl("^reachable", bioc_status), 
++     ppm_status = ppm_status, bioc_status = bioc_status)
+
+> cat("repos:\n")
+repos:
+
+> print(info$repos)
+                                                         CRAN 
+"https://packagemanager.posit.co/cran/__linux__/noble/latest" 
+
+> cat("\nrenv version:", renv_ver, "\n")
+
+renv version: 1.2.3 
+
+> cat("PPM reachable:", info$ppm_access, "\n")
+PPM reachable: TRUE 
+
+> cat("Bioconductor reachable:", info$bioc_access, "\n")
+Bioconductor reachable: FALSE 
+
+> sink(file.path(out_dir, "session-info.txt"))
+
+> jsonlite_ok <- requireNamespace("jsonlite", quietly = TRUE)
+
+> if (!jsonlite_ok) install.packages("jsonlite", repos = ppm_url, 
++     quiet = TRUE)
+
+> writeLines(jsonlite::toJSON(info, auto_unbox = TRUE, 
++     pretty = TRUE), file.path(out_dir, "env_diagnostics.json"))
+
+> cat("Wrote env_diagnostics.json, session-info.txt\n\nDone.\n")
+Wrote env_diagnostics.json, session-info.txt
+
+Done.
+Warning message:
+In system2("curl", args, stdout = TRUE, stderr = FALSE) :
+  running command ''curl' -s -o /dev/null -w %{http_code} --connect-timeout 10 --max-time 10 https://bioconductor.org 2>/dev/null' had status 7 and error message 'Function not implemented'
+[run_scenario 5] Running 10_init_project...
+
+> scenario <- Sys.getenv("SCENARIO", "unknown")
+
+> out_dir <- file.path("/artifacts", scenario)
+
+> dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+
+> cat("=== 10_init_project ===\n")
+=== 10_init_project ===
+
+> cat("Scenario:", scenario, "\n\n")
+Scenario: 5 
+
+
+> library(renv)
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+
+> cat("renv version:", as.character(packageVersion("renv")), 
++     "\n")
+renv version: 1.2.3 
+
+> cat("Working directory:", getwd(), "\n\n")
+Working directory: /project 
+
+
+> cat("renv::init()\n\n")
+renv::init()
+
+
+> renv::init(restart = FALSE)
+The following package(s) will be updated in the lockfile:
+
+# RSPM -----------------------------------------------------------------------
+- renv   [* -> 1.2.3]
+
+The version of R recorded in the lockfile will be updated:
+- R      [* -> 4.4.2]
+
+- Lockfile written to "/project/renv.lock".
+
+> cat("\n--- post-init lockfile ---\n")
+
+--- post-init lockfile ---
+
+> if (file.exists("renv.lock")) {
++     lock_text <- readLines("renv.lock")
++     cat(paste(lock_text, collapse = "\n"), "\n")
++ } else {
++     cat("(no renv.lock created)\n")
++ }
+{
+  "R": {
+    "Version": "4.4.2",
+    "Repositories": [
+      {
+        "Name": "CRAN",
+        "URL": "https://packagemanager.posit.co/cran/latest"
+      }
+    ]
+  },
+  "Packages": {
+    "renv": {
+      "Package": "renv",
+      "Version": "1.2.3",
+      "Source": "Repository",
+      "Type": "Package",
+      "Title": "Project Environments",
+      "Authors@R": "c( person(\"Kevin\", \"Ushey\", role = c(\"aut\", \"cre\"), email = \"kevin@rstudio.com\", comment = c(ORCID = \"0000-0003-2880-7407\")), person(\"Hadley\", \"Wickham\", role = c(\"aut\"), email = \"hadley@rstudio.com\", comment = c(ORCID = \"0000-0003-4757-117X\")), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\")) )",
+      "Description": "A dependency management toolkit for R. Using 'renv', you can create and manage project-local R libraries, save the state of these libraries to a 'lockfile', and later restore your library as required. Together, these tools can help make your projects more isolated, portable, and reproducible.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://rstudio.github.io/renv/, https://github.com/rstudio/renv",
+      "BugReports": "https://github.com/rstudio/renv/issues",
+      "Imports": [
+        "utils"
+      ],
+      "Suggests": [
+        "BiocManager",
+        "cli",
+        "compiler",
+        "covr",
+        "cpp11",
+        "curl",
+        "devtools",
+        "generics",
+        "gitcreds",
+        "jsonlite",
+        "jsonvalidate",
+        "knitr",
+        "miniUI",
+        "modules",
+        "packrat",
+        "pak",
+        "R6",
+        "remotes",
+        "reticulate",
+        "rmarkdown",
+        "rstudioapi",
+        "shiny",
+        "testthat",
+        "uuid",
+        "waldo",
+        "yaml",
+        "webfakes"
+      ],
+      "Encoding": "UTF-8",
+      "RoxygenNote": "7.3.3",
+      "VignetteBuilder": "knitr",
+      "Config/Needs/website": "tidyverse/tidytemplate",
+      "Config/testthat/edition": "3",
+      "Config/testthat/parallel": "true",
+      "Config/testthat/start-first": "bioconductor,python,install,restore,snapshot,retrieve,remotes",
+      "NeedsCompilation": "no",
+      "Author": "Kevin Ushey [aut, cre] (ORCID: <https://orcid.org/0000-0003-2880-7407>), Hadley Wickham [aut] (ORCID: <https://orcid.org/0000-0003-4757-117X>), Posit Software, PBC [cph, fnd]",
+      "Maintainer": "Kevin Ushey <kevin@rstudio.com>",
+      "Repository": "RSPM"
+    }
+  }
+} 
+
+> if (scenario == "6") {
++     cat("Scenario 6: setting renv::settings$bioconductor.version('3.20')\n")
++     tryCatch(renv::settings$bioconductor.version("3.20"), error = function(e) cat("WARNING: could not set bioconductor.version:", 
++         e$message, "\n"))
++     cat("renv/settings.json after bioconductor.version():\n")
++     if (file.exists("renv/settings.json")) 
++         cat(paste(readLines("renv/settings.json"), collapse = "\n"), 
++             "\n")
++ }
+
+> cat("\n--- renv/settings.json ---\n")
+
+--- renv/settings.json ---
+
+> if (file.exists("renv/settings.json")) {
++     settings_text <- readLines("renv/settings.json")
++     cat(paste(settings_text, collapse = "\n"), "\n")
++ }
+{
+  "bioconductor.version": null,
+  "external.libraries": [],
+  "ignored.packages": [],
+  "lockfile.sanitize": true,
+  "package.dependency.fields": [
+    "Imports",
+    "Depends",
+    "LinkingTo"
+  ],
+  "ppm.enabled": null,
+  "ppm.ignored.urls": [],
+  "r.version": null,
+  "snapshot.dev": false,
+  "snapshot.type": "implicit",
+  "use.cache": true,
+  "vcs.ignore.cellar": true,
+  "vcs.ignore.library": true,
+  "vcs.ignore.local": true,
+  "vcs.manage.ignores": true
+} 
+
+> cat("\nDone.\n")
+
+Done.
+[run_scenario 5] Running 20_install_pkg...
+
+> scenario <- Sys.getenv("SCENARIO", "unknown")
+
+> package <- Sys.getenv("PACKAGE", "metaRNASeq")
+
+> out_dir <- file.path("/artifacts", scenario)
+
+> dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+
+> cat("=== 20_install_pkg ===\n")
+=== 20_install_pkg ===
+
+> cat("Scenario:", scenario, "\n")
+Scenario: 5 
+
+> cat("Package:", package, "\n\n")
+Package: glue 
+
+
+> library(renv)
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+
+> renv::settings$use.cache(FALSE)
+- Synchronizing project library with the cache ... Done!
+- The cache has been disabled for this project.
+
+> cat("renv cache disabled\n")
+renv cache disabled
+
+> cat("Installing", package, "via renv::install() (open network)...\n")
+Installing glue via renv::install() (open network)...
+
+> result <- tryCatch({
++     renv::install(package)
++     "success"
++ }, warning = function(w) {
++     cat("WARNING:", conditionMessage(w), "\n")
++     "warning"
++ }, error = function(e) {
++     cat("ERROR:", conditionMessage(e), "\n")
++     paste0("error: ", conditionMessage(e))
++ })
+- Querying repositories for available source packages ... Done!
+The following package(s) will be installed:
+- glue [1.8.1]
+These packages will be installed into "/project/renv/library/linux-ubuntu-noble/R-4.4/x86_64-pc-linux-gnu".
+
+# Downloading packages -------------------------------------------------------
+[?25l  (0/1) Downloading: glue                                                                                                                                       [32m✔[0m glue 1.8.1                               [174 kB in 0.58s]
+                                                                                Successfully downloaded 1 package in 0.71 seconds.
+
+# Installing packages --------------------------------------------------------
+                                                                                [32m✔[0m glue 1.8.1                               [installed binary]
+Successfully installed 1 package in 0.16 seconds.
+[?25h
+> cat("\nInstall result:", result, "\n")
+
+Install result: success 
+
+> writeLines(paste0("library(", package, ")"), "project.R")
+
+> cat("Wrote project.R: library(", package, ")\n")
+Wrote project.R: library( glue )
+
+> cat("\nDone.\n")
+
+Done.
+[run_scenario 5] Running 30_snapshot...
+- The project is out-of-sync -- use `renv::status()` for details.
+
+> scenario <- Sys.getenv("SCENARIO", "unknown")
+
+> out_dir <- file.path("/artifacts", scenario)
+
+> dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+
+> cat("=== 30_snapshot ===\n")
+=== 30_snapshot ===
+
+> cat("Scenario:", scenario, "\n\n")
+Scenario: 5 
+
+
+> library(renv)
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+
+> library(jsonlite)
+
+> cat("Running renv::dependencies() to capture dependency list...\n")
+Running renv::dependencies() to capture dependency list...
+
+> deps <- tryCatch(renv::dependencies(progress = FALSE, 
++     errors = "ignored"), error = function(e) {
++     cat("WARNING from renv::dependencies():", conditionMessage(e), 
++         "\n")
++     NULL
++ })
+
+> if (!is.null(deps) && nrow(deps) > 0) {
++     write.csv(deps, file.path(out_dir, "discovered-dependencies.csv"), 
++         row.names = FALSE)
++     cat("Wrote discovered-dependencies.csv\n")
++     biocmanager_found <- "BiocManager" %in% deps$Package
++     biocversion_found <- "BiocVersion" %in% deps$Package
++ } else {
++     write.csv(data.frame(Source = character(), Package = character(), 
++         Require = character(), Version = character(), Dev = logical()), 
++         file.path(out_dir, "discovered-dependencies.csv"), row.names = FALSE)
++     biocmanager_found <- FALSE
++     biocversion_found <- FALSE
++ }
+Wrote discovered-dependencies.csv
+
+> cat("BiocManager in deps:", biocmanager_found, "\n")
+BiocManager in deps: FALSE 
+
+> cat("BiocVersion in deps:", biocversion_found, "\n\n")
+BiocVersion in deps: FALSE 
+
+
+> cat("Running renv::snapshot()...\n")
+Running renv::snapshot()...
+
+> snap_result <- tryCatch({
++     renv::snapshot(prompt = FALSE)
++     "success"
++ }, warning = function(w) {
++     cat("WARNING:", conditionMessage(w), "\n")
++     "warning"
++ }, error = function(e) {
++     cat("ERROR:", conditionMessage(e), "\n")
++     paste0("error: ", conditionMessage(e))
++ })
+The following package(s) will be updated in the lockfile:
+
+# CRAN -----------------------------------------------------------------------
+- glue   [* -> 1.8.1]
+
+- Lockfile written to "/project/renv.lock".
+
+> cat("Snapshot result:", snap_result, "\n\n")
+Snapshot result: success 
+
+
+> renv_lock_written <- file.exists("renv.lock")
+
+> if (renv_lock_written) {
++     file.copy("renv.lock", file.path(out_dir, "renv.lock"), overwrite = TRUE)
++     cat("renv.lock written.\n")
++ } else {
++     cat("No renv.lock written.\n")
++ }
+renv.lock written.
+
+> if (file.exists("renv/settings.json")) {
++     file.copy("renv/settings.json", file.path(out_dir, "renv-settings.json"), 
++         overwrite = TRUE)
++ }
+[1] TRUE
+
+> classify_snap_error <- function(result_str) {
++     if (is.null(result_str) || result_str %in% c("success", "warning")) 
++         return(NA)
++     msg <- tolower(result_str)
++     if (grepl("biocversion", msg)) 
++         "BiocVersion dependency not available"
++     else if (grepl("cannot be validated", msg)) 
++         "Bioconductor version validation failed"
++     else if (grepl("biocmanager", msg)) 
++         "BiocManager invoked but failed"
++     else if (grepl("no internet|connection", msg)) 
++         "Network connection error"
++     else if (grepl("timeout", msg)) 
++         "Timeout"
++     else sub("^error:\\s*", "", result_str)
++ }
+
+> snap_status <- if (snap_result == "success") {
++     "success"
++ } else if (snap_result == "warning") {
++     "warning"
++ } else if (grepl("^error:", snap_result)) {
++     "failure"
++ } else {
++     snap_result
++ }
+
+> writeLines(toJSON(list(result = snap_result, biocmanager_discovered = biocmanager_found, 
++     biocversion_discovered = biocversion_found, snapshot_status = snap_status, 
++     snapshot_error_classification = classify_snap_error(snap_result), 
++     renv_lock_written = renv_lock_written), auto_unbox = TRUE, 
++     pretty = TRUE, na = "null"), file.path(out_dir, "snapshot_result.json"))
+
+> cat("\nDone.\n")
+
+Done.
+[run_scenario 5] Running 70_collect_artifacts (no-init-file)...
+
+> `%||%` <- function(x, y) if (is.null(x) || (length(x) == 
++     1 && is.na(x))) y else x
+
+> scenario <- Sys.getenv("SCENARIO", "unknown")
+
+> artifacts_root <- "/artifacts"
+
+> cat("=== 70_collect_artifacts ===\n")
+=== 70_collect_artifacts ===
+
+> cat("Scenario:", scenario, "\n\n")
+Scenario: 5 
+
+
+> read_json_safe <- function(path) {
++     tryCatch(jsonlite::fromJSON(path, simplifyVector = FALSE), 
++         error = function(e) list())
++ }
+
+> out_dir <- file.path(artifacts_root, scenario)
+
+> for (src in c("/project/renv.lock", "/project/renv/settings.json")) {
++     if (file.exists(src)) {
++         dest_name <- if (basename(src) == "settings.json") 
++             "renv-settings.json"
++         else "renv.lock"
++         file.copy(src, file.path(out_dir, dest_name), overwrite = TRUE)
++         cat("Saved", src, "→", dest_name, "\n")
++     }
++ }
+Saved /project/renv.lock → renv.lock 
+Saved /project/renv/settings.json → renv-settings.json 
+
+> result_path <- file.path(out_dir, "result.json")
+
+> if (!file.exists(result_path) || !(scenario %in% c("1", 
++     "2", "3"))) {
++     env <- read_json_safe(file.path(out_dir, "env_diagnostics.json"))
++     snap <- read_json_safe(file.path(out_dir, "snapshot_result.json"))
++     deps_csv <- file.path(out_dir, "discovered-dependencies.csv")
++     biocmanager_found <- FALSE
++     biocversion_found <- FALSE
++     if (file.exists(deps_csv)) {
++         deps_df <- tryCatch(read.csv(deps_csv, stringsAsFactors = FALSE), 
++             error = function(e) NULL)
++         if (!is.null(deps_df) && "Package" %in% names(deps_df)) {
++             biocmanager_found <- "BiocManager" %in% deps_df$Package
++             biocversion_found <- "BiocVersion" %in% deps_df$Package
++         }
++     }
++     if (!biocmanager_found && !is.null(snap$biocmanager_discovered)) 
++         biocmanager_found <- isTRUE(snap$biocmanager_discovered)
++     if (!biocversion_found && !is.null(snap$biocversion_discovered)) 
++         biocversion_found <- isTRUE(snap$biocversion_discovered)
++     biocviews_present <- scenario %in% c("4", "6", "7")
++     snap_status <- snap$snapshot_status %||% "unknown"
++     lock_written <- file.exists(file.path(out_dir, "renv.lock")) || 
++         isTRUE(snap$renv_lock_written)
++     result <- list(scenario = scenario, ppm_reachable = isTRUE(env$ppm_access), 
++         bioconductor_reachable = isTRUE(env$bioc_access), biocviews_present = biocviews_present, 
++         biocmanager_discovered = biocmanager_found, biocversion_discovered = biocversion_found, 
++         snapshot_status = snap_status, snapshot_error_classification = snap$snapshot_error_classification %||% 
++             NA, renv_lock_written = lock_written, notes = "")
++     writeLines(jsonlite::toJSON(result, auto_unbox = TRUE, pretty = TRUE, 
++         na = "null"), result_path)
++     cat("Wrote result.json\n")
++     for (f in c("snapshot_result.json", "env_diagnostics.json")) {
++         p <- file.path(out_dir, f)
++         if (file.exists(p)) 
++             file.remove(p)
++     }
++ } else {
++     cat("result.json already present — skipping\n")
++ }
+Wrote result.json
+
+> cat("\nOutcome:\n")
+
+Outcome:
+
+> cat(paste(readLines(result_path), collapse = "\n"), 
++     "\n")
+{
+  "scenario": "5",
+  "ppm_reachable": true,
+  "bioconductor_reachable": false,
+  "biocviews_present": false,
+  "biocmanager_discovered": false,
+  "biocversion_discovered": false,
+  "snapshot_status": "success",
+  "snapshot_error_classification": null,
+  "renv_lock_written": true,
+  "notes": ""
+} 
+
+> cat("\nDone.\n")
+
+Done.
+[run_scenario 5] Done.

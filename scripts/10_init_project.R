@@ -17,7 +17,6 @@ cat("\n--- post-init lockfile ---\n")
 if (file.exists("renv.lock")) {
   lock_text <- readLines("renv.lock")
   cat(paste(lock_text, collapse = "\n"), "\n")
-  file.copy("renv.lock", file.path(out_dir, "post_init_lockfile.json"), overwrite = TRUE)
 } else {
   cat("(no renv.lock created)\n")
 }
@@ -37,7 +36,6 @@ cat("\n--- renv/settings.json ---\n")
 if (file.exists("renv/settings.json")) {
   settings_text <- readLines("renv/settings.json")
   cat(paste(settings_text, collapse = "\n"), "\n")
-  file.copy("renv/settings.json", file.path(out_dir, "post_init_settings.json"), overwrite = TRUE)
 }
 
 cat("\nDone.\n")

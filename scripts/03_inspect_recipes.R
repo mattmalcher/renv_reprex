@@ -51,18 +51,8 @@ if (!is.null(desc)) {
     cat("Saved recipes DESCRIPTION to artifacts.\n")
   }
 
-  # Also write a tidy CSV of the relevant fields
-  meta_df <- data.frame(
-    Field = c("Package", "Version", "Repository", "biocViews"),
-    Value = c(desc$Package %||% "", desc$Version %||% "",
-              repository_value, biocviews_value),
-    stringsAsFactors = FALSE
-  )
-  write.csv(meta_df, file.path(out_dir, "discovered-dependencies.csv"), row.names = FALSE)
-  cat("Wrote discovered-dependencies.csv (recipes metadata)\n")
 } else {
   cat("ERROR: recipes not installed or packageDescription() failed.\n")
-  write.csv(data.frame(), file.path(out_dir, "discovered-dependencies.csv"), row.names = FALSE)
 }
 
 notes <- paste0(
@@ -71,10 +61,7 @@ notes <- paste0(
   "Key point: recipes is installed from CRAN/PPM but has non-empty biocViews."
 )
 
-# Session info and repos
 sink(file.path(out_dir, "session-info.txt")); print(sessionInfo()); sink()
-repos <- getOption("repos")
-writeLines(paste0(names(repos), "=", repos), file.path(out_dir, "repos.txt"))
 
 result <- list(
   scenario                      = scenario,

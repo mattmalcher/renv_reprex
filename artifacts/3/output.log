@@ -1,30 +1,136 @@
 [run_scenario 3] Running 00_env_diagnostics...
+
+> `%||%` <- function(x, y) if (is.null(x) || (length(x) == 
++     1 && is.na(x))) y else x
+
+> scenario <- Sys.getenv("SCENARIO", "unknown")
+
+> out_dir <- file.path("/artifacts", scenario)
+
+> dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+
+> cat("=== 00_env_diagnostics ===\n")
 === 00_env_diagnostics ===
+
+> cat("Scenario:", scenario, "\n\n")
 Scenario: 3 
 
+
+> check_url_curl <- function(url, timeout_s = 10) {
++     args <- c("-s", "-o", "/dev/null", "-w", "%{http_code}", 
++         "--connect-timeout", as.character(timeout_s), "--max-time", 
++         as.character(timeout_s), url)
++     result <- tryCatch({
++         code <- as.integer(system2("curl", args, stdout = TRUE, 
++             stderr = FALSE))
++         if (!is.na(code) && code > 0) 
++             paste0("reachable (HTTP ", code, ")")
++         else "blocked: no HTTP response"
++     }, error = function(e) paste0("error: ", conditionMessage(e)))
++     result
++ }
+
+> ppm_url <- Sys.getenv("PPM_URL", "https://packagemanager.posit.co/cran/__linux__/noble/latest")
+
+> bioc_url <- "https://bioconductor.org"
+
+> cat("Checking PPM:", ppm_url, "\n")
 Checking PPM: https://packagemanager.posit.co/cran/__linux__/noble/latest 
+
+> ppm_status <- check_url_curl(ppm_url)
+
+> cat("PPM status:", ppm_status, "\n\n")
 PPM status: reachable (HTTP 400) 
 
+
+> cat("Checking Bioconductor:", bioc_url, "\n")
 Checking Bioconductor: https://bioconductor.org 
+
+> bioc_status <- check_url_curl(bioc_url)
+
+> cat("Bioconductor status:", bioc_status, "\n\n")
 Bioconductor status: reachable (HTTP 200) 
 
+
+> renv_ver <- tryCatch(as.character(packageVersion("renv")), 
++     error = function(e) "not installed")
+
+> info <- list(scenario = scenario, r_version = R.version$version.string, 
++     renv_version = renv_ver, repos = getOption("repos"), BioC_mirror = getOption("BioC_mirror"), 
++     BIOCONDUCTOR_CONFIG_FILE = getOption("BIOCONDUCTOR_CONFIG_FILE"), 
++     R_BIOC_VERSION = Sys.getenv("R_BIOC_VERSION"), ppm_access = grepl("^reachable", 
++         ppm_status), bioc_access = grepl("^reachable", bioc_status), 
++     ppm_status = ppm_status, bioc_status = bioc_status)
+
+> cat("repos:\n")
 repos:
+
+> print(info$repos)
                                                          CRAN 
 "https://packagemanager.posit.co/cran/__linux__/noble/latest" 
 
+> cat("\nrenv version:", renv_ver, "\n")
+
 renv version: 1.2.3 
+
+> cat("PPM reachable:", info$ppm_access, "\n")
 PPM reachable: TRUE 
+
+> cat("Bioconductor reachable:", info$bioc_access, "\n")
 Bioconductor reachable: TRUE 
-Wrote env_diagnostics.json, session-info.txt, repos.txt
+
+> sink(file.path(out_dir, "session-info.txt"))
+
+> jsonlite_ok <- requireNamespace("jsonlite", quietly = TRUE)
+
+> if (!jsonlite_ok) install.packages("jsonlite", repos = ppm_url, 
++     quiet = TRUE)
+
+> writeLines(jsonlite::toJSON(info, auto_unbox = TRUE, 
++     pretty = TRUE), file.path(out_dir, "env_diagnostics.json"))
+
+> cat("Wrote env_diagnostics.json, session-info.txt\n\nDone.\n")
+Wrote env_diagnostics.json, session-info.txt
 
 Done.
 [run_scenario 3] Running 03_inspect_recipes...
+
+> scenario <- Sys.getenv("SCENARIO", "unknown")
+
+> out_dir <- file.path("/artifacts", scenario)
+
+> dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+
+> `%||%` <- function(x, y) if (is.null(x)) y else x
+
+> cat("=== 03_inspect_recipes ===\n")
 === 03_inspect_recipes ===
+
+> cat("Scenario:", scenario, "\n\n")
 Scenario: 3 
 
+
+> library(jsonlite)
+
+> ppm_url <- Sys.getenv("PPM_URL", "https://packagemanager.posit.co/cran/__linux__/noble/latest")
+
+> cat("Installing recipes from PPM...\n")
 Installing recipes from PPM...
+
+> cat("repos:", ppm_url, "\n\n")
 repos: https://packagemanager.posit.co/cran/__linux__/noble/latest 
 
+
+> install_result <- tryCatch({
++     install.packages("recipes", repos = ppm_url, quiet = FALSE)
++     "success"
++ }, warning = function(w) {
++     cat("WARNING during install:", conditionMessage(w), "\n")
++     "warning"
++ }, error = function(e) {
++     cat("ERROR during install:", conditionMessage(e), "\n")
++     paste0("error: ", conditionMessage(e))
++ })
 Installing package into ‘/usr/local/lib/R/site-library’
 (as ‘lib’ is unspecified)
 also installing the dependencies ‘listenv’, ‘parallelly’, ‘future’, ‘globals’, ‘digest’, ‘gtable’, ‘isoband’, ‘S7’, ‘farver’, ‘labeling’, ‘RColorBrewer’, ‘viridisLite’, ‘shape’, ‘future.apply’, ‘numDeriv’, ‘progressr’, ‘SQUAREM’, ‘utf8’, ‘Rcpp’, ‘data.table’, ‘ggplot2’, ‘scales’, ‘diagram’, ‘lava’, ‘stringi’, ‘pillar’, ‘R6’, ‘tzdb’, ‘cpp11’, ‘prodlim’, ‘timechange’, ‘pkgconfig’, ‘stringr’, ‘dplyr’, ‘cli’, ‘clock’, ‘generics’, ‘glue’, ‘gower’, ‘hardhat’, ‘ipred’, ‘lifecycle’, ‘lubridate’, ‘magrittr’, ‘purrr’, ‘rlang’, ‘sparsevctrs’, ‘tibble’, ‘tidyr’, ‘tidyselect’, ‘timeDate’, ‘vctrs’, ‘withr’
@@ -409,10 +515,49 @@ downloaded 1.6 MB
 * DONE (recipes)
 
 The downloaded source packages are in
-	‘/tmp/Rtmp3Q3rOB/downloaded_packages’
+	‘/tmp/RtmpjNYg4o/downloaded_packages’
+
+> cat("\nInstall result:", install_result, "\n\n")
 
 Install result: success 
 
+
+> desc <- tryCatch(packageDescription("recipes"), error = function(e) NULL)
+
+> biocviews_present <- FALSE
+
+> biocviews_value <- ""
+
+> repository_value <- ""
+
+> if (!is.null(desc)) {
++     biocviews_value <- desc$biocViews %||% ""
++     repository_value <- desc$Repository %||% ""
++     biocviews_present <- nzchar(biocviews_value)
++     cat("--- recipes metadata ---\n")
++     cat("Package:   ", desc$Package %||% "unknown", "\n")
++     cat("Version:   ", desc$Version %||% "unknown", "\n")
++     cat("Repository:", repository_value, "\n")
++     cat("biocViews: ", if (biocviews_present) 
++         biocviews_value
++     else "(absent)", "\n\n")
++     desc_path <- system.file("DESCRIPTION", package = "recipes")
++     if (file.exists(desc_path)) {
++         file.copy(desc_path, file.path(out_dir, "recipes_DESCRIPTION.txt"), 
++             overwrite = TRUE)
++         cat("Saved recipes DESCRIPTION to artifacts.\n")
++     }
++     meta_df <- data.frame(Field = c("Package", "Version", "Repository", 
++         "biocViews"), Value = c(desc$Package %||% "", desc$Version %||% 
++         "", repository_value, biocviews_value), stringsAsFactors = FALSE)
++     write.csv(meta_df, file.path(out_dir, "discovered-dependencies.csv"), 
++         row.names = FALSE)
++     cat("Wrote discovered-dependencies.csv (recipes metadata)\n")
++ } else {
++     cat("ERROR: recipes not installed or packageDescription() failed.\n")
++     write.csv(data.frame(), file.path(out_dir, "discovered-dependencies.csv"), 
++         row.names = FALSE)
++ }
 --- recipes metadata ---
 Package:    recipes 
 Version:    1.3.2 
@@ -421,16 +566,107 @@ biocViews:  mixOmics
 
 Saved recipes DESCRIPTION to artifacts.
 Wrote discovered-dependencies.csv (recipes metadata)
+
+> notes <- paste0("recipes repository: '", repository_value, 
++     "'. ", "biocViews: '", biocviews_value, "'. ", "Key point: recipes is installed from CRAN/PPM but has non-empty biocViews.")
+
+> sink(file.path(out_dir, "session-info.txt"))
+
+> result <- list(scenario = scenario, ppm_reachable = TRUE, 
++     bioconductor_reachable = NA, biocviews_present = biocviews_present, 
++     biocmanager_discovered = NA, biocversion_discovered = NA, 
++     snapshot_status = "not_run", snapshot_error_classification = NA, 
++     renv_lock_written = FALSE, notes = notes)
+
+> writeLines(toJSON(result, auto_unbox = TRUE, pretty = TRUE, 
++     na = "null"), file.path(out_dir, "result.json"))
+
+> cat("Wrote result.json\n\nDone.\n")
 Wrote result.json
 
 Done.
 [run_scenario 3] Running 70_collect_artifacts (no-init-file)...
+
+> `%||%` <- function(x, y) if (is.null(x) || (length(x) == 
++     1 && is.na(x))) y else x
+
+> scenario <- Sys.getenv("SCENARIO", "unknown")
+
+> artifacts_root <- "/artifacts"
+
+> cat("=== 70_collect_artifacts ===\n")
 === 70_collect_artifacts ===
+
+> cat("Scenario:", scenario, "\n\n")
 Scenario: 3 
 
-result.json already present (written by scenario script)
+
+> read_json_safe <- function(path) {
++     tryCatch(jsonlite::fromJSON(path, simplifyVector = FALSE), 
++         error = function(e) list())
++ }
+
+> out_dir <- file.path(artifacts_root, scenario)
+
+> for (src in c("/project/renv.lock", "/project/renv/settings.json")) {
++     if (file.exists(src)) {
++         dest_name <- if (basename(src) == "settings.json") 
++             "renv-settings.json"
++         else "renv.lock"
++         file.copy(src, file.path(out_dir, dest_name), overwrite = TRUE)
++         cat("Saved", src, "→", dest_name, "\n")
++     }
++ }
+
+> result_path <- file.path(out_dir, "result.json")
+
+> if (!file.exists(result_path) || !(scenario %in% c("1", 
++     "2", "3"))) {
++     env <- read_json_safe(file.path(out_dir, "env_diagnostics.json"))
++     snap <- read_json_safe(file.path(out_dir, "snapshot_result.json"))
++     deps_csv <- file.path(out_dir, "discovered-dependencies.csv")
++     biocmanager_found <- FALSE
++     biocversion_found <- FALSE
++     if (file.exists(deps_csv)) {
++         deps_df <- tryCatch(read.csv(deps_csv, stringsAsFactors = FALSE), 
++             error = function(e) NULL)
++         if (!is.null(deps_df) && "Package" %in% names(deps_df)) {
++             biocmanager_found <- "BiocManager" %in% deps_df$Package
++             biocversion_found <- "BiocVersion" %in% deps_df$Package
++         }
++     }
++     if (!biocmanager_found && !is.null(snap$biocmanager_discovered)) 
++         biocmanager_found <- isTRUE(snap$biocmanager_discovered)
++     if (!biocversion_found && !is.null(snap$biocversion_discovered)) 
++         biocversion_found <- isTRUE(snap$biocversion_discovered)
++     biocviews_present <- scenario %in% c("4", "6", "7")
++     snap_status <- snap$snapshot_status %||% "unknown"
++     lock_written <- file.exists(file.path(out_dir, "renv.lock")) || 
++         isTRUE(snap$renv_lock_written)
++     result <- list(scenario = scenario, ppm_reachable = isTRUE(env$ppm_access), 
++         bioconductor_reachable = isTRUE(env$bioc_access), biocviews_present = biocviews_present, 
++         biocmanager_discovered = biocmanager_found, biocversion_discovered = biocversion_found, 
++         snapshot_status = snap_status, snapshot_error_classification = snap$snapshot_error_classification %||% 
++             NA, renv_lock_written = lock_written, notes = "")
++     writeLines(jsonlite::toJSON(result, auto_unbox = TRUE, pretty = TRUE, 
++         na = "null"), result_path)
++     cat("Wrote result.json\n")
++     for (f in c("snapshot_result.json", "env_diagnostics.json")) {
++         p <- file.path(out_dir, f)
++         if (file.exists(p)) 
++             file.remove(p)
++     }
++ } else {
++     cat("result.json already present — skipping\n")
++ }
+result.json already present — skipping
+
+> cat("\nOutcome:\n")
 
 Outcome:
+
+> cat(paste(readLines(result_path), collapse = "\n"), 
++     "\n")
 {
   "scenario": "3",
   "ppm_reachable": true,
@@ -443,6 +679,8 @@ Outcome:
   "renv_lock_written": false,
   "notes": "recipes repository: 'RSPM'. biocViews: 'mixOmics'. Key point: recipes is installed from CRAN/PPM but has non-empty biocViews."
 } 
+
+> cat("\nDone.\n")
 
 Done.
 [run_scenario 3] Done.

@@ -55,8 +55,6 @@ cat("Bioconductor dependency type present:", bioc_type_found, "\n")
 
 # Session info and repos
 sink(file.path(out_dir, "session-info.txt")); print(sessionInfo()); sink()
-repos <- getOption("repos")
-writeLines(paste0(names(repos), "=", repos), file.path(out_dir, "repos.txt"))
 
 result <- list(
   scenario                    = scenario,

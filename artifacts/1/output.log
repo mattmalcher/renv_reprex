@@ -1,0 +1,322 @@
+[run_scenario 1] Running 00_env_diagnostics...
+
+> `%||%` <- function(x, y) if (is.null(x) || (length(x) == 
++     1 && is.na(x))) y else x
+
+> scenario <- Sys.getenv("SCENARIO", "unknown")
+
+> out_dir <- file.path("/artifacts", scenario)
+
+> dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+
+> cat("=== 00_env_diagnostics ===\n")
+=== 00_env_diagnostics ===
+
+> cat("Scenario:", scenario, "\n\n")
+Scenario: 1 
+
+
+> check_url_curl <- function(url, timeout_s = 10) {
++     args <- c("-s", "-o", "/dev/null", "-w", "%{http_code}", 
++         "--connect-timeout", as.character(timeout_s), "--max-time", 
++         as.character(timeout_s), url)
++     result <- tryCatch({
++         code <- as.integer(system2("curl", args, stdout = TRUE, 
++             stderr = FALSE))
++         if (!is.na(code) && code > 0) 
++             paste0("reachable (HTTP ", code, ")")
++         else "blocked: no HTTP response"
++     }, error = function(e) paste0("error: ", conditionMessage(e)))
++     result
++ }
+
+> ppm_url <- Sys.getenv("PPM_URL", "https://packagemanager.posit.co/cran/__linux__/noble/latest")
+
+> bioc_url <- "https://bioconductor.org"
+
+> cat("Checking PPM:", ppm_url, "\n")
+Checking PPM: https://packagemanager.posit.co/cran/__linux__/noble/latest 
+
+> ppm_status <- check_url_curl(ppm_url)
+
+> cat("PPM status:", ppm_status, "\n\n")
+PPM status: reachable (HTTP 400) 
+
+
+> cat("Checking Bioconductor:", bioc_url, "\n")
+Checking Bioconductor: https://bioconductor.org 
+
+> bioc_status <- check_url_curl(bioc_url)
+
+> cat("Bioconductor status:", bioc_status, "\n\n")
+Bioconductor status: reachable (HTTP 200) 
+
+
+> renv_ver <- tryCatch(as.character(packageVersion("renv")), 
++     error = function(e) "not installed")
+
+> info <- list(scenario = scenario, r_version = R.version$version.string, 
++     renv_version = renv_ver, repos = getOption("repos"), BioC_mirror = getOption("BioC_mirror"), 
++     BIOCONDUCTOR_CONFIG_FILE = getOption("BIOCONDUCTOR_CONFIG_FILE"), 
++     R_BIOC_VERSION = Sys.getenv("R_BIOC_VERSION"), ppm_access = grepl("^reachable", 
++         ppm_status), bioc_access = grepl("^reachable", bioc_status), 
++     ppm_status = ppm_status, bioc_status = bioc_status)
+
+> cat("repos:\n")
+repos:
+
+> print(info$repos)
+                                                         CRAN 
+"https://packagemanager.posit.co/cran/__linux__/noble/latest" 
+
+> cat("\nrenv version:", renv_ver, "\n")
+
+renv version: 1.2.3 
+
+> cat("PPM reachable:", info$ppm_access, "\n")
+PPM reachable: TRUE 
+
+> cat("Bioconductor reachable:", info$bioc_access, "\n")
+Bioconductor reachable: TRUE 
+
+> sink(file.path(out_dir, "session-info.txt"))
+
+> jsonlite_ok <- requireNamespace("jsonlite", quietly = TRUE)
+
+> if (!jsonlite_ok) install.packages("jsonlite", repos = ppm_url, 
++     quiet = TRUE)
+
+> writeLines(jsonlite::toJSON(info, auto_unbox = TRUE, 
++     pretty = TRUE), file.path(out_dir, "env_diagnostics.json"))
+
+> cat("Wrote env_diagnostics.json, session-info.txt\n\nDone.\n")
+Wrote env_diagnostics.json, session-info.txt
+
+Done.
+[run_scenario 1] Running 01_discover_deps...
+
+> `%||%` <- function(x, y) if (is.null(x)) y else x
+
+> scenario <- Sys.getenv("SCENARIO", "unknown")
+
+> fixture <- Sys.getenv("FIXTURE", "cranlike-with-biocviews")
+
+> out_dir <- file.path("/artifacts", scenario)
+
+> dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+
+> cat("=== 01_discover_deps ===\n")
+=== 01_discover_deps ===
+
+> cat("Scenario:", scenario, "\n")
+Scenario: 1 
+
+> cat("Fixture:", fixture, "\n\n")
+Fixture: cranlike-no-biocviews 
+
+
+> fixture_desc <- file.path("/fixtures", fixture, "DESCRIPTION")
+
+> cat("Running renv::dependencies() on:", fixture_desc, 
++     "\n\n")
+Running renv::dependencies() on: /fixtures/cranlike-no-biocviews/DESCRIPTION 
+
+
+> library(renv)
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+
+> library(jsonlite)
+
+> desc_lines <- readLines(fixture_desc)
+
+> biocviews_line <- grep("^biocViews", desc_lines, value = TRUE, 
++     ignore.case = TRUE)
+
+> biocviews_value <- if (length(biocviews_line) > 0) trimws(sub("^biocViews:\\s*", 
++     "", biocviews_line[[1]], ignore.case = TRUE)) else ""
+
+> biocviews_present <- nzchar(biocviews_value)
+
+> cat("biocViews field:", if (biocviews_present) biocviews_value else "(absent)", 
++     "\n\n")
+biocViews field: (absent) 
+
+
+> deps <- tryCatch(renv::dependencies(fixture_desc, 
++     progress = FALSE, errors = "ignored"), error = function(e) {
++     cat("ERROR from renv::dependencies():", conditionMessage(e), 
++         "\n")
++     NULL
++ })
+
+> if (!is.null(deps) && nrow(deps) > 0) {
++     cat("Discovered dependencies:\n")
++     print(deps)
++     write.csv(deps, file.path(out_dir, "discovered-dependencies.csv"), 
++         row.names = FALSE)
++     cat("\nWrote discovered-dependencies.csv\n")
++ } else {
++     cat("No dependencies discovered.\n")
++     write.csv(data.frame(Source = character(), Package = character(), 
++         Require = character(), Version = character(), Dev = logical()), 
++         file.path(out_dir, "discovered-dependencies.csv"), row.names = FALSE)
++ }
+Discovered dependencies:
+     Type                                      Source Package Require Version
+1 Imports /fixtures/cranlike-no-biocviews/DESCRIPTION   stats                
+    Dev
+1 FALSE
+
+Wrote discovered-dependencies.csv
+
+> biocmanager_found <- !is.null(deps) && "BiocManager" %in% 
++     deps$Package
+
+> biocversion_found <- !is.null(deps) && "BiocVersion" %in% 
++     deps$Package
+
+> bioc_type_found <- !is.null(deps) && any(grepl("Bioconductor", 
++     deps$Type %||% ""), na.rm = TRUE)
+
+> cat("\nBiocManager discovered:", biocmanager_found, 
++     "\n")
+
+BiocManager discovered: FALSE 
+
+> cat("BiocVersion discovered:", biocversion_found, 
++     "\n")
+BiocVersion discovered: FALSE 
+
+> cat("Bioconductor dependency type present:", bioc_type_found, 
++     "\n")
+Bioconductor dependency type present: FALSE 
+
+> sink(file.path(out_dir, "session-info.txt"))
+
+> result <- list(scenario = scenario, ppm_reachable = TRUE, 
++     bioconductor_reachable = NA, biocviews_present = biocviews_present, 
++     biocmanager_discovered = biocmanager_found, biocversion_discovered = biocversion_found, 
++     snapshot_status = "not_run", snapshot_error_classification = NA, 
++     renv_lock_written = FALSE, notes = paste0("Dependency discovery only. Fixture: ", 
++         fixture, ". biocViews value: '", biocviews_value, "'."))
+
+> writeLines(toJSON(result, auto_unbox = TRUE, pretty = TRUE, 
++     na = "null"), file.path(out_dir, "result.json"))
+
+> cat("Wrote result.json\n\nDone.\n")
+Wrote result.json
+
+Done.
+[run_scenario 1] Running 70_collect_artifacts (no-init-file)...
+
+> `%||%` <- function(x, y) if (is.null(x) || (length(x) == 
++     1 && is.na(x))) y else x
+
+> scenario <- Sys.getenv("SCENARIO", "unknown")
+
+> artifacts_root <- "/artifacts"
+
+> cat("=== 70_collect_artifacts ===\n")
+=== 70_collect_artifacts ===
+
+> cat("Scenario:", scenario, "\n\n")
+Scenario: 1 
+
+
+> read_json_safe <- function(path) {
++     tryCatch(jsonlite::fromJSON(path, simplifyVector = FALSE), 
++         error = function(e) list())
++ }
+
+> out_dir <- file.path(artifacts_root, scenario)
+
+> for (src in c("/project/renv.lock", "/project/renv/settings.json")) {
++     if (file.exists(src)) {
++         dest_name <- if (basename(src) == "settings.json") 
++             "renv-settings.json"
++         else "renv.lock"
++         file.copy(src, file.path(out_dir, dest_name), overwrite = TRUE)
++         cat("Saved", src, "→", dest_name, "\n")
++     }
++ }
+
+> result_path <- file.path(out_dir, "result.json")
+
+> if (!file.exists(result_path) || !(scenario %in% c("1", 
++     "2", "3"))) {
++     env <- read_json_safe(file.path(out_dir, "env_diagnostics.json"))
++     snap <- read_json_safe(file.path(out_dir, "snapshot_result.json"))
++     deps_csv <- file.path(out_dir, "discovered-dependencies.csv")
++     biocmanager_found <- FALSE
++     biocversion_found <- FALSE
++     if (file.exists(deps_csv)) {
++         deps_df <- tryCatch(read.csv(deps_csv, stringsAsFactors = FALSE), 
++             error = function(e) NULL)
++         if (!is.null(deps_df) && "Package" %in% names(deps_df)) {
++             biocmanager_found <- "BiocManager" %in% deps_df$Package
++             biocversion_found <- "BiocVersion" %in% deps_df$Package
++         }
++     }
++     if (!biocmanager_found && !is.null(snap$biocmanager_discovered)) 
++         biocmanager_found <- isTRUE(snap$biocmanager_discovered)
++     if (!biocversion_found && !is.null(snap$biocversion_discovered)) 
++         biocversion_found <- isTRUE(snap$biocversion_discovered)
++     biocviews_present <- scenario %in% c("4", "6", "7")
++     snap_status <- snap$snapshot_status %||% "unknown"
++     lock_written <- file.exists(file.path(out_dir, "renv.lock")) || 
++         isTRUE(snap$renv_lock_written)
++     result <- list(scenario = scenario, ppm_reachable = isTRUE(env$ppm_access), 
++         bioconductor_reachable = isTRUE(env$bioc_access), biocviews_present = biocviews_present, 
++         biocmanager_discovered = biocmanager_found, biocversion_discovered = biocversion_found, 
++         snapshot_status = snap_status, snapshot_error_classification = snap$snapshot_error_classification %||% 
++             NA, renv_lock_written = lock_written, notes = "")
++     writeLines(jsonlite::toJSON(result, auto_unbox = TRUE, pretty = TRUE, 
++         na = "null"), result_path)
++     cat("Wrote result.json\n")
++     for (f in c("snapshot_result.json", "env_diagnostics.json")) {
++         p <- file.path(out_dir, f)
++         if (file.exists(p)) 
++             file.remove(p)
++     }
++ } else {
++     cat("result.json already present — skipping\n")
++ }
+result.json already present — skipping
+
+> cat("\nOutcome:\n")
+
+Outcome:
+
+> cat(paste(readLines(result_path), collapse = "\n"), 
++     "\n")
+{
+  "scenario": "1",
+  "ppm_reachable": true,
+  "bioconductor_reachable": null,
+  "biocviews_present": false,
+  "biocmanager_discovered": false,
+  "biocversion_discovered": false,
+  "snapshot_status": "not_run",
+  "snapshot_error_classification": null,
+  "renv_lock_written": false,
+  "notes": "Dependency discovery only. Fixture: cranlike-no-biocviews. biocViews value: ''."
+} 
+
+> cat("\nDone.\n")
+
+Done.
+[run_scenario 1] Done.

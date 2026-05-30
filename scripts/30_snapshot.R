@@ -1,4 +1,3 @@
-source("/scripts/bioc_detect.R")
 scenario <- Sys.getenv("SCENARIO", "unknown")
 out_dir  <- file.path("/artifacts", scenario)
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -56,7 +55,7 @@ cat("Snapshot result:", snap_result, "\n\n")
 renv_lock_written <- file.exists("renv.lock")
 if (renv_lock_written) {
   file.copy("renv.lock", file.path(out_dir, "renv.lock"), overwrite = TRUE)
-  cat("Lockfile has Bioconductor refs:", lockfile_has_bioc_refs("renv.lock"), "\n")
+  cat("renv.lock written.\n")
 } else {
   cat("No renv.lock written.\n")
 }
@@ -89,13 +88,12 @@ snap_status <- if (snap_result == "success") {
 
 writeLines(
   toJSON(list(
-    result                      = snap_result,
-    bioc_refs                   = lockfile_has_bioc_refs("renv.lock"),
-    biocmanager_discovered      = biocmanager_found,
-    biocversion_discovered      = biocversion_found,
-    snapshot_status             = snap_status,
+    result                        = snap_result,
+    biocmanager_discovered        = biocmanager_found,
+    biocversion_discovered        = biocversion_found,
+    snapshot_status               = snap_status,
     snapshot_error_classification = classify_snap_error(snap_result),
-    renv_lock_written           = renv_lock_written
+    renv_lock_written             = renv_lock_written
   ), auto_unbox = TRUE, pretty = TRUE, na = "null"),
   file.path(out_dir, "snapshot_result.json")
 )

@@ -50,13 +50,9 @@ cat("\nrenv version:", renv_ver, "\n")
 cat("PPM reachable:", info$ppm_access, "\n")
 cat("Bioconductor reachable:", info$bioc_access, "\n")
 
-# Write session-info.txt and repos.txt
 sink(file.path(out_dir, "session-info.txt"))
 print(sessionInfo())
 sink()
-
-repos <- getOption("repos")
-writeLines(paste0(names(repos), "=", repos), file.path(out_dir, "repos.txt"))
 
 jsonlite_ok <- requireNamespace("jsonlite", quietly = TRUE)
 if (!jsonlite_ok) install.packages("jsonlite", repos = ppm_url, quiet = TRUE)
@@ -65,4 +61,4 @@ writeLines(
   jsonlite::toJSON(info, auto_unbox = TRUE, pretty = TRUE),
   file.path(out_dir, "env_diagnostics.json")
 )
-cat("Wrote env_diagnostics.json, session-info.txt, repos.txt\n\nDone.\n")
+cat("Wrote env_diagnostics.json, session-info.txt\n\nDone.\n")

@@ -2,7 +2,7 @@
 # run_matrix.sh — build the renv biocViews/BiocVersion debugging harness and run scenarios.
 #
 # Usage:
-#   ./run_matrix.sh              # run all 8 scenarios
+#   ./run_matrix.sh              # run all 7 scenarios
 #   ./run_matrix.sh 2 4 5        # run specific scenarios
 #   ./run_matrix.sh --build-only # build image and exit
 #
@@ -56,12 +56,12 @@ run_scenario() {
     -e SCENARIO="$name" \
     "${extra_args[@]}" \
     "$IMAGE" "$name" \
-    > >(tee "${log_dir}/stdout.log") \
-    2>"${log_dir}/stderr.log" &
+    > >(tee "${log_dir}/output.log") \
+    2>&1 &
   local pid=$!
 
   (sleep $TIMEOUT && kill $pid 2>/dev/null && \
-    echo "TIMEOUT: Scenario ${name} exceeded ${TIMEOUT}s" >> "${log_dir}/stdout.log") &
+    echo "TIMEOUT: Scenario ${name} exceeded ${TIMEOUT}s" >> "${log_dir}/output.log") &
   local watchdog=$!
 
   if wait $pid 2>/dev/null; then
@@ -69,7 +69,7 @@ run_scenario() {
     echo "Scenario ${name}: completed"
   else
     kill $watchdog 2>/dev/null || true
-    echo "Scenario ${name}: FAILED or TIMED OUT (see ${log_dir}/stdout.log)"
+    echo "Scenario ${name}: FAILED or TIMED OUT (see ${log_dir}/output.log)"
   fi
 }
 
@@ -100,11 +100,11 @@ run_two_phase_scenario() {
     -e SCENARIO="$name" \
     -e PHASE=install \
     "$IMAGE" "$name" \
-    > >(tee "${log_dir}/stdout.log") \
-    2>"${log_dir}/stderr.log" &
+    > >(tee "${log_dir}/output.log") \
+    2>&1 &
   local pid=$!
   (sleep $TIMEOUT && kill $pid 2>/dev/null && \
-    echo "TIMEOUT: install phase exceeded ${TIMEOUT}s" >> "${log_dir}/stdout.log") &
+    echo "TIMEOUT: install phase exceeded ${TIMEOUT}s" >> "${log_dir}/output.log") &
   local watchdog=$!
   wait $pid 2>/dev/null || true
   kill $watchdog 2>/dev/null || true
@@ -117,18 +117,18 @@ run_two_phase_scenario() {
     -e PHASE=snapshot \
     "${snapshot_args[@]}" \
     "$IMAGE" "$name" \
-    > >(tee -a "${log_dir}/stdout.log") \
-    2>>"${log_dir}/stderr.log" &
+    > >(tee -a "${log_dir}/output.log") \
+    2>&1 &
   local pid=$!
   (sleep $TIMEOUT && kill $pid 2>/dev/null && \
-    echo "TIMEOUT: snapshot phase exceeded ${TIMEOUT}s" >> "${log_dir}/stdout.log") &
+    echo "TIMEOUT: snapshot phase exceeded ${TIMEOUT}s" >> "${log_dir}/output.log") &
   local watchdog=$!
   if wait $pid 2>/dev/null; then
     kill $watchdog 2>/dev/null || true
     echo "Scenario ${name}: completed"
   else
     kill $watchdog 2>/dev/null || true
-    echo "Scenario ${name}: FAILED or TIMED OUT (see ${log_dir}/stdout.log)"
+    echo "Scenario ${name}: FAILED or TIMED OUT (see ${log_dir}/output.log)"
   fi
 
   # Clean up root-owned project directory
@@ -139,14 +139,14 @@ run_two_phase_scenario() {
 
 # ── parse args ─────────────────────────────────────────────────────────────────
 
-ALL_SCENARIOS=(1 2 3 4 5 6 7 8 9)
+ALL_SCENARIOS=(1 2 3 4 5 6 7)
 RUN_SCENARIOS=()
 BUILD_ONLY=false
 
 for arg in "$@"; do
   case "$arg" in
     --build-only) BUILD_ONLY=true ;;
-    [1-9])        RUN_SCENARIOS+=("$arg") ;;
+    [1-7])        RUN_SCENARIOS+=("$arg") ;;
     *)            echo "Unknown argument: $arg" >&2; exit 1 ;;
   esac
 done
@@ -196,32 +196,37 @@ for s in "${RUN_SCENARIOS[@]}"; do
       # Workaround: PPM Bioconductor mirror as BioCsoft repo, Bioc blocked
       run_two_phase_scenario 7 "${BLOCK_HOSTS[@]}" -e PPM_BIOC_URL="${PPM_BIOC_URL}"
       ;;
-    8)
-      # Workaround: stub renv.bioconductor.repos (PPM root), Bioc blocked
-      run_two_phase_scenario 8 "${BLOCK_HOSTS[@]}"
-      ;;
-    9)
-      # Workaround: renv.bioconductor.repos pointing at CRAN PPM URL, Bioc blocked
-      run_two_phase_scenario 9 "${BLOCK_HOSTS[@]}"
-      ;;
   esac
 done
 
-# ── generate cross-scenario report ────────────────────────────────────────────
+# ── generate summary.json ─────────────────────────────────────────────────────
 
 echo ""
-echo "━━━ Generating cross-scenario report ━━━"
+echo "━━━ Generating summary.json ━━━"
 $DOCKER run --rm \
   -v "${ARTIFACTS}:/artifacts" \
-  -e SCENARIO=REPORT \
-  "$IMAGE" REPORT \
-  2>&1 | tee "${ARTIFACTS}/report_generation.log"
+  --entrypoint Rscript \
+  "$IMAGE" \
+  --no-save --no-restore -e "
+    library(jsonlite)
+    ss <- as.character(1:7)
+    results <- lapply(setNames(ss, ss), function(s) {
+      p <- file.path('/artifacts', s, 'result.json')
+      if (file.exists(p)) fromJSON(p, simplifyVector = FALSE)
+      else list(scenario = s, notes = 'not run')
+    })
+    writeLines(toJSON(results, auto_unbox = TRUE, pretty = TRUE, na = 'null'),
+               '/artifacts/summary.json')
+    cat('Wrote summary.json\n')
+  "
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Done. Artifacts in: ${ARTIFACTS}/"
 echo ""
-echo "  summary.json  → machine-readable results"
-echo "  report.md     → Posit Support report"
+echo "  summary.json           → machine-readable results for all scenarios"
+echo "  <N>/result.json        → per-scenario structured outcome"
+echo "  <N>/discovered-dependencies.csv  → dependency discovery results"
+echo "  <N>/output.log         → full container output"
 echo ""
 ls -lh "${ARTIFACTS}/"
