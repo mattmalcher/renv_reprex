@@ -1,0 +1,20 @@
+=== 70_collect_artifacts ===
+Scenario: 3 
+
+result.json already present (written by scenario script)
+
+Outcome:
+{
+  "scenario": "3",
+  "ppm_reachable": true,
+  "bioconductor_reachable": null,
+  "biocviews_present": true,
+  "biocmanager_discovered": null,
+  "biocversion_discovered": null,
+  "snapshot_status": "not_run",
+  "snapshot_error_classification": null,
+  "renv_lock_written": false,
+  "notes": "recipes repository: 'RSPM'. biocViews: 'mixOmics'. Key point: recipes is installed from CRAN/PPM but has non-empty biocViews."
+} 
+
+Done.

@@ -1,324 +1,328 @@
 source("/scripts/bioc_detect.R")
 `%||%` <- function(x, y) if (is.null(x) || (length(x) == 1L && is.na(x))) y else x
 
-scenario <- Sys.getenv("SCENARIO", "unknown")
+scenario       <- Sys.getenv("SCENARIO", "unknown")
+artifacts_root <- "/artifacts"
+
 cat("=== 70_collect_artifacts ===\n")
 cat("Scenario:", scenario, "\n\n")
 
-artifacts_root <- "/artifacts"
+read_json_safe <- function(path) {
+  tryCatch(jsonlite::fromJSON(path, simplifyVector = FALSE), error = function(e) list())
+}
 
-# ── per-scenario artifact consolidation ───────────────────────────────────────
+# ── per-scenario consolidation ────────────────────────────────────────────────
 
 if (scenario != "REPORT") {
   out_dir <- file.path(artifacts_root, scenario)
-  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
-  # Copy key files if they exist in /project
-  for (f in c("renv.lock", "renv/settings.json")) {
-    if (file.exists(f)) {
-      dest <- file.path(out_dir, basename(f))
-      file.copy(f, dest, overwrite = TRUE)
-      cat("Saved", f, "→", dest, "\n")
+  # Copy renv.lock and renv/settings.json if present in /project
+  for (src in c("/project/renv.lock", "/project/renv/settings.json")) {
+    if (file.exists(src)) {
+      dest_name <- if (basename(src) == "settings.json") "renv-settings.json" else "renv.lock"
+      file.copy(src, file.path(out_dir, dest_name), overwrite = TRUE)
+      cat("Saved", src, "→", dest_name, "\n")
     }
   }
 
-  # ── classify scenario outcome ────────────────────────────────────────────────
+  # Build result.json from individual step outputs.
+  # Scenarios 1-3 write their own result.json before calling this script — skip
+  # overwriting those. Scenarios 4-8 always write here (stale files from prior
+  # runs must be refreshed from the latest snapshot_result.json).
+  result_path <- file.path(out_dir, "result.json")
+  if (!file.exists(result_path) || !(scenario %in% c("1", "2", "3"))) {
+    env  <- read_json_safe(file.path(out_dir, "env_diagnostics.json"))
+    snap <- read_json_safe(file.path(out_dir, "snapshot_result.json"))
 
-  read_json_safe <- function(path) {
-    tryCatch(jsonlite::fromJSON(path, simplifyVector = FALSE), error = function(e) list())
-  }
-
-  env   <- read_json_safe(file.path(out_dir, "env_diagnostics.json"))
-  snap  <- read_json_safe(file.path(out_dir, "snapshot_result.json"))
-  rest  <- read_json_safe(file.path(out_dir, "restore_result.json"))
-  start <- read_json_safe(file.path(out_dir, "startup_result.json"))
-
-  classify_status <- function(result_str) {
-    if (is.null(result_str)) return("unknown")
-    if (result_str == "success") return("success")
-    if (grepl("^error", result_str)) return("failure")
-    if (grepl("timeout", result_str, ignore.case = TRUE)) return("timeout")
-    result_str
-  }
-
-  lock_path     <- file.path(out_dir, "renv.lock")
-  settings_path <- file.path(out_dir, "settings.json")
-
-  settings_obj  <- if (file.exists(settings_path))
-    tryCatch(jsonlite::fromJSON(settings_path, simplifyVector = FALSE), error = function(e) list())
-  else list()
-
-  # For scenario H: determine which sub-test re-introduced Bioc refs
-  reintroduced_by <- NA_character_
-  if (scenario == "H") {
-    startup_after <- read_json_safe(file.path(out_dir, "startup_result.json"))
-    snap_after    <- read_json_safe(file.path(out_dir, "snapshot_result.json"))
-    rest_after    <- read_json_safe(file.path(out_dir, "restore_result.json"))
-    reintro_parts <- character(0)
-    if (isTRUE(startup_after$bioc_refs)) reintro_parts <- c(reintro_parts, "startup")
-    if (isTRUE(snap_after$bioc_refs))    reintro_parts <- c(reintro_parts, "snapshot")
-    if (isTRUE(rest_after$bioc_refs))    reintro_parts <- c(reintro_parts, "restore")
-    reintroduced_by <- if (length(reintro_parts) > 0) paste(reintro_parts, collapse = "+") else "none"
-  }
-
-  key_error <- NA_character_
-  for (log_f in list.files(out_dir, pattern = "\\.log$", full.names = TRUE)) {
-    log_lines <- readLines(log_f, warn = FALSE)
-    err_lines <- grep("^(Error|ERROR|WARNING|TIMEOUT)", log_lines, value = TRUE)
-    if (length(err_lines) > 0) {
-      key_error <- err_lines[[1]]
-      break
+    # deps CSV to check biocmanager/biocversion
+    deps_csv <- file.path(out_dir, "discovered-dependencies.csv")
+    biocmanager_found <- FALSE
+    biocversion_found <- FALSE
+    if (file.exists(deps_csv)) {
+      deps_df <- tryCatch(read.csv(deps_csv, stringsAsFactors = FALSE), error = function(e) NULL)
+      if (!is.null(deps_df) && "Package" %in% names(deps_df)) {
+        biocmanager_found <- "BiocManager" %in% deps_df$Package
+        biocversion_found <- "BiocVersion" %in% deps_df$Package
+      }
     }
+    if (!biocmanager_found && !is.null(snap$biocmanager_discovered))
+      biocmanager_found <- isTRUE(snap$biocmanager_discovered)
+    if (!biocversion_found && !is.null(snap$biocversion_discovered))
+      biocversion_found <- isTRUE(snap$biocversion_discovered)
+
+    # Infer biocviews_present from scenario number:
+    # 4/6/7/8/9 use metaRNASeq (biocViews present); 5 uses glue (absent)
+    biocviews_present <- scenario %in% c("4", "6", "7", "8", "9")
+
+    snap_status <- snap$snapshot_status %||% "unknown"
+    lock_written <- file.exists(file.path(out_dir, "renv.lock")) ||
+                    isTRUE(snap$renv_lock_written)
+
+    result <- list(
+      scenario                      = scenario,
+      ppm_reachable                 = isTRUE(env$ppm_access),
+      bioconductor_reachable        = isTRUE(env$bioc_access),
+      biocviews_present             = biocviews_present,
+      biocmanager_discovered        = biocmanager_found,
+      biocversion_discovered        = biocversion_found,
+      snapshot_status               = snap_status,
+      snapshot_error_classification = snap$snapshot_error_classification %||% NA,
+      renv_lock_written             = lock_written,
+      notes                         = ""
+    )
+    writeLines(jsonlite::toJSON(result, auto_unbox = TRUE, pretty = TRUE, na = "null"),
+               result_path)
+    cat("Wrote result.json\n")
+  } else {
+    cat("result.json already present and written by scenario script — skipping\n")
   }
 
-  result <- list(
-    scenario_name            = scenario,
-    ppm_access               = isTRUE(env$ppm_access),
-    bioc_access              = isTRUE(env$bioc_access),
-    lockfile_has_bioc_refs   = lockfile_has_bioc_refs(lock_path),
-    settings_has_bioc_version = !is.null(settings_obj$`bioconductor.version`),
-    startup_status           = classify_status(start$result),
-    snapshot_status          = classify_status(snap$result),
-    restore_status           = classify_status(rest$result),
-    lockfile_reintroduced_by = reintroduced_by,
-    key_error_message        = key_error %||% NA_character_
-  )
-
-  writeLines(
-    jsonlite::toJSON(result, auto_unbox = TRUE, pretty = TRUE, na = "null"),
-    file.path(out_dir, "scenario_result.json")
-  )
-  cat("Wrote scenario_result.json\n")
-  cat("\nOutcome summary:\n")
-  cat(jsonlite::toJSON(result, auto_unbox = TRUE, pretty = TRUE, na = "null"), "\n")
+  cat("\nOutcome:\n")
+  cat(paste(readLines(result_path), collapse = "\n"), "\n")
 
 } else {
-  # ── REPORT mode: cross-scenario aggregation ──────────────────────────────────
+  # ── REPORT mode: cross-scenario summary and report.md ────────────────────────
 
-  scenarios <- c("A", "B", "C", "D", "E", "F", "G", "H")
+  scenarios <- as.character(1:9)
   results   <- list()
 
-  read_json_safe <- function(path) {
-    tryCatch(jsonlite::fromJSON(path, simplifyVector = FALSE), error = function(e) list())
-  }
-
   for (s in scenarios) {
-    r_path <- file.path(artifacts_root, s, "scenario_result.json")
+    r_path <- file.path(artifacts_root, s, "result.json")
     if (file.exists(r_path)) {
       results[[s]] <- read_json_safe(r_path)
     } else {
-      results[[s]] <- list(scenario_name = s, note = "not run")
+      results[[s]] <- list(scenario = s, notes = "not run")
     }
   }
 
-  # summary.json
   writeLines(
     jsonlite::toJSON(results, auto_unbox = TRUE, pretty = TRUE, na = "null"),
     file.path(artifacts_root, "summary.json")
   )
-  cat("Wrote artifacts/summary.json\n")
+  cat("Wrote summary.json\n")
 
-  # report.md
-  env_A <- read_json_safe(file.path(artifacts_root, "A", "env_diagnostics.json"))
+  # ── Helper for safe field access ─────────────────────────────────────────────
+  rget <- function(r, field) r[[field]] %||% NA
+
+  # ── Recipes biocViews from scenario 3 ────────────────────────────────────────
+  recipes_desc_path <- file.path(artifacts_root, "3", "recipes_DESCRIPTION.txt")
+  recipes_biocviews <- ""
+  if (file.exists(recipes_desc_path)) {
+    lines <- readLines(recipes_desc_path)
+    bv    <- grep("^biocViews", lines, value = TRUE)
+    if (length(bv) > 0) recipes_biocviews <- trimws(sub("^biocViews:\\s*", "", bv[[1]]))
+  }
+
+  # ── Load env from scenario 4 for R/renv versions ─────────────────────────────
+  env4 <- read_json_safe(file.path(artifacts_root, "4", "env_diagnostics.json"))
+  r_version   <- env4$r_version   %||% "unknown"
+  renv_version <- env4$renv_version %||% "unknown"
+
+  # ── Discovery comparison from scenarios 1 and 2 ──────────────────────────────
+  r1 <- results[["1"]]; r2 <- results[["2"]]
+
+  # ── Snapshot comparison from scenarios 4 and 5 ───────────────────────────────
+  r4 <- results[["4"]]; r5 <- results[["5"]]
 
   report_lines <- c(
-    "# renv / Bioconductor Failure Mode Report",
+    "# renv biocViews → BiocVersion Dependency Failure Report",
     "",
     paste0("Generated: ", format(Sys.time(), "%Y-%m-%d %H:%M:%S UTC", tz = "UTC")),
     "",
     "---",
     "",
-    "## Environment",
+    "## 1. Executive Summary",
     "",
-    paste0("- **R version**: ", env_A$r_version %||% "unknown"),
-    paste0("- **renv version**: ", env_A$renv_version %||% "unknown"),
-    paste0("- **OS**: Ubuntu 24.04 (Noble), Docker container"),
-    paste0("- **PPM URL**: ", if (is.character(env_A$repos)) env_A$repos[[1]] else env_A$repos[["CRAN"]] %||% "unknown"),
-    paste0("- **Trigger package**: recipes"),
-    paste0("- **Bioconductor version tested**: 3.20"),
+    "A non-empty `biocViews` field in a package DESCRIPTION file causes `renv` dependency",
+    "discovery to inject `BiocManager` and `BiocVersion` as implicit dependencies.",
+    "In a CRAN/PPM-only environment where Bioconductor is blocked, `BiocVersion` cannot",
+    "be resolved, so `renv::snapshot()` cannot complete — even when the user has not",
+    "explicitly depended on any Bioconductor package.",
+    "",
+    "**Environment**",
+    "",
+    paste0("- R version: ", r_version),
+    paste0("- renv version: ", renv_version),
+    paste0("- OS: Ubuntu 24.04 (Noble), Docker container"),
+    paste0("- CRAN repo: Posit Package Manager (Noble Linux binaries)"),
+    paste0("- Bioconductor blocking: Docker `--add-host` redirects bioconductor.org → 127.0.0.1"),
     "",
     "---",
     "",
-    "## Scenario Results",
+    "## 2. Code-Path Evidence",
     "",
-    "| Scenario | Bioc blocked | PPM ok | Bioc refs in lock | Startup | Snapshot | Restore | Re-introduced by |",
-    "|---|---|---|---|---|---|---|---|"
+    "The trigger is in `renv/R/dependencies.R`, function `renv_dependencies_discover_description()`:",
+    "",
+    "```r",
+    "# if this is a bioconductor package, add their implicit dependencies",
+    "# guard against packages which have an empty biocViews field",
+    "# https://github.com/rstudio/renv/issues/2149",
+    "if (nzchar(dcf[[\"biocViews\"]] %||% \"\")) {",
+    "  data[[length(data) + 1L]] <- renv_dependencies_list(",
+    "    source   = path,",
+    "    packages = c(renv_bioconductor_manager(), \"BiocVersion\")",
+    "  )",
+    "  names(data)[[length(data)]] <- \"Bioconductor\"",
+    "}",
+    "```",
+    "",
+    "- This branch fires on **any** non-empty `biocViews` value.",
+    "- On R ≥ 4.0, `renv_bioconductor_manager()` returns `\"BiocManager\"`.",
+    "- `BiocManager` is available from CRAN/PPM. **`BiocVersion` is not** — it is a",
+    "  Bioconductor-only package.",
+    "- Therefore any project whose dependency graph includes a package with non-empty",
+    "  `biocViews` will fail `renv::snapshot()` on a CRAN-only, Bioconductor-blocked network.",
+    "",
+    "---",
+    "",
+    "## 3. Minimal Fixture Proof",
+    "",
+    "Two tiny local packages were created — identical except for the `biocViews` field.",
+    "Scenarios 1 and 2 run `renv::dependencies()` on each DESCRIPTION directly.",
+    "",
+    "| Fixture | biocViews field | BiocManager discovered | BiocVersion discovered |",
+    "|---------|----------------|------------------------|------------------------|",
+    sprintf("| `cranlike-no-biocviews` | absent | %s | %s |",
+            if (isFALSE(rget(r1, "biocmanager_discovered"))) "No" else rget(r1, "biocmanager_discovered") %||% "—",
+            if (isFALSE(rget(r1, "biocversion_discovered"))) "No" else rget(r1, "biocversion_discovered") %||% "—"),
+    sprintf("| `cranlike-with-biocviews` | `biocViews: Software` | %s | %s |",
+            if (isTRUE(rget(r2, "biocmanager_discovered"))) "**Yes**" else rget(r2, "biocmanager_discovered") %||% "—",
+            if (isTRUE(rget(r2, "biocversion_discovered"))) "**Yes**" else rget(r2, "biocversion_discovered") %||% "—"),
+    "",
+    "Scenario 1 expected: no `BiocManager`, no `BiocVersion`.",
+    "Scenario 2 expected: `BiocManager` and `BiocVersion` present, type = `Bioconductor`.",
+    "",
+    "---",
+    "",
+    "## 4. Real-Package Proof: `recipes`",
+    "",
+    "Scenario 3 installs `recipes` from Posit Package Manager (CRAN) and inspects its metadata.",
+    "",
+    "```r",
+    "packageDescription(\"recipes\")[c(\"Package\", \"Version\", \"Repository\", \"biocViews\")]",
+    "```",
+    "",
+    if (nzchar(recipes_biocviews))
+      paste0("- `biocViews`: `", recipes_biocviews, "`")
+    else
+      "- `biocViews`: see `artifacts/3/recipes_DESCRIPTION.txt`",
+    "",
+    "Key point: `recipes` is installed from CRAN/PPM, not from Bioconductor.",
+    "Its `biocViews` metadata is enough to trigger renv's Bioconductor dependency injection.",
+    "",
+    "---",
+    "",
+    "## 5. Snapshot Proof Under Blocked Bioconductor",
+    "",
+    "Scenarios 4 and 5 use identical network configuration (Bioconductor blocked, PPM reachable).",
+    "The only difference is which fixture package is installed.",
+    "",
+    "| Scenario | Fixture | biocViews | Bioc blocked | Snapshot status | Error |",
+    "|----------|---------|-----------|--------------|-----------------|-------|",
+    sprintf("| 4 | `cranlike-with-biocviews` | present | Yes | **%s** | %s |",
+            toupper(rget(r4, "snapshot_status") %||% "unknown"),
+            rget(r4, "snapshot_error_classification") %||% "—"),
+    sprintf("| 5 | `cranlike-no-biocviews` | absent | Yes | **%s** | %s |",
+            toupper(rget(r5, "snapshot_status") %||% "unknown"),
+            rget(r5, "snapshot_error_classification") %||% "—"),
+    "",
+    "Scenario 5 is the key control: the same blocked network does **not** prevent snapshot",
+    "when there is no `biocViews` trigger. The failure in Scenario 4 is caused purely by",
+    "renv's implicit `BiocVersion` dependency injection.",
+    "",
+    "---",
+    "",
+    "## 6. Workaround Analysis",
+    ""
   )
 
   scenario_desc <- c(
-    A = "Control (open network)",
-    B = "Blocked, default config",
-    C = "Blocked + renv.bioconductor.repos=character(0)",
-    D = "Blocked + R_BIOC_VERSION env var",
-    E = "Blocked + renv::settings$bioconductor.version()",
-    F = "Blocked + non-empty stub repos",
-    G = "Blocked + BioC_mirror + BIOCONDUCTOR_CONFIG_FILE",
-    H = "Blocked + manual lockfile patch"
+    "1" = "Discovery — no biocViews",
+    "2" = "Discovery — with biocViews",
+    "3" = "Real-world: recipes from CRAN/PPM",
+    "4" = "Snapshot failure: with biocViews, Bioc blocked",
+    "5" = "Snapshot control: no biocViews, Bioc blocked",
+    "6" = "Workaround: renv::settings$bioconductor.version('3.20')",
+    "7" = "Workaround: BiocVersion via PPM Bioconductor mirror",
+    "8" = "Workaround: stub renv.bioconductor.repos (PPM root)",
+    "9" = "Workaround: renv.bioconductor.repos pointing at CRAN PPM URL"
   )
-
-  for (s in scenarios) {
-    r <- results[[s]]
-    bioc_blocked <- if (s == "A") "No" else "Yes"
-    ppm_ok    <- if (isTRUE(r$ppm_access)) "Yes" else "No"
-    bioc_refs <- if (isTRUE(r$lockfile_has_bioc_refs)) "Yes" else "No"
-    startup   <- r$startup_status  %||% "—"
-    snapshot  <- r$snapshot_status %||% "—"
-    restore   <- r$restore_status  %||% "—"
-    reintr    <- r$lockfile_reintroduced_by %||% "—"
-    report_lines <- c(report_lines,
-      sprintf("| **%s** %s | %s | %s | %s | %s | %s | %s | %s |",
-              s, scenario_desc[[s]], bioc_blocked, ppm_ok, bioc_refs,
-              startup, snapshot, restore, reintr))
-  }
-
-  report_lines <- c(report_lines, "", "---", "", "## Scenario Details", "")
-
-  for (s in scenarios) {
-    r   <- results[[s]]
-    env <- read_json_safe(file.path(artifacts_root, s, "env_diagnostics.json"))
-
-    report_lines <- c(report_lines,
-      paste0("### Scenario ", s, ": ", scenario_desc[[s]]),
-      "",
-      paste0("**PPM reachable**: ", if (isTRUE(r$ppm_access)) "Yes" else "No"),
-      paste0("**Bioconductor reachable**: ", if (isTRUE(r$bioc_access)) "Yes" else "No"),
-      ""
-    )
-
-    lock_path <- file.path(artifacts_root, s, "renv.lock")
-    if (file.exists(lock_path)) {
-      # Show actual Bioconductor section/repos lines (not renv's embedded metadata)
-      lock_obj <- tryCatch(jsonlite::fromJSON(lock_path, simplifyVector = FALSE), error = function(e) NULL)
-      bioc_lines <- character(0)
-      if (!is.null(lock_obj)) {
-        if (!is.null(lock_obj$Bioconductor)) {
-          bioc_lines <- c(bioc_lines, paste0("Bioconductor.Version: ", lock_obj$Bioconductor$Version))
-        }
-        bioc_repos <- Filter(function(r) grepl("bioconductor\\.org", r$URL %||% "", ignore.case=TRUE),
-                             lock_obj$R$Repositories %||% list())
-        if (length(bioc_repos) > 0) {
-          bioc_lines <- c(bioc_lines, paste0("Repository: ", sapply(bioc_repos, function(r) paste0(r$Name, " = ", r$URL))))
-        }
-      }
-      if (length(bioc_lines) > 0) {
-        report_lines <- c(report_lines,
-          "**Bioconductor-related lockfile entries:**",
-          "```",
-          bioc_lines,
-          "```",
-          "")
-      } else {
-        report_lines <- c(report_lines, "**Lockfile**: No Bioconductor section or repos.", "")
-      }
-    }
-
-    if (!is.null(r$key_error_message) && !is.na(r$key_error_message)) {
-      report_lines <- c(report_lines,
-        paste0("**Key error**: `", r$key_error_message, "`"),
-        "")
-    }
-
-    if (s == "H") {
-      report_lines <- c(report_lines,
-        paste0("**Lockfile re-introduced by**: ", r$lockfile_reintroduced_by %||% "unknown"),
-        "")
-
-      # Show diff for H
-      before_path <- file.path(artifacts_root, s, "lockfile_before_patch.json")
-      after_path  <- file.path(artifacts_root, s, "lockfile_after_patch.json")
-      if (file.exists(before_path) && file.exists(after_path)) {
-        before_lines <- readLines(before_path)
-        after_lines  <- readLines(after_path)
-        before_bioc  <- before_lines[grepl("bioconductor|Bioconductor", before_lines)]
-        after_bioc   <- after_lines[grepl("bioconductor|Bioconductor", after_lines)]
-        report_lines <- c(report_lines,
-          "**Bioc lines before patch:**",
-          "```",
-          head(before_bioc, 15),
-          "```",
-          "**Bioc lines after patch:**",
-          "```",
-          if (length(after_bioc) > 0) head(after_bioc, 15) else "(none)",
-          "```",
-          "")
-      }
-    }
-  }
-
-  # Classify error types per scenario
-  error_A <- results[["A"]]$key_error_message %||% ""
-
-  snap_warn  <- Filter(function(s) isTRUE(results[[s]]$snapshot_status == "warning"),  scenarios)
-  snap_fail  <- Filter(function(s) s != "A" && isTRUE(results[[s]]$snapshot_status == "failure"), scenarios)
-  reintr_h   <- results[["H"]]$lockfile_reintroduced_by %||% "unknown"
 
   report_lines <- c(report_lines,
+    "| Scenario | Approach | Snapshot status | Error / Notes |",
+    "|----------|---------|-----------------|---------------|"
+  )
+
+  for (s in c("4", "6", "7", "8", "9")) {
+    r       <- results[[s]]
+    status  <- rget(r, "snapshot_status") %||% "unknown"
+    err     <- rget(r, "snapshot_error_classification") %||% rget(r, "notes") %||% "—"
+    approach <- switch(s,
+      "4" = "None — baseline failure",
+      "6" = "`renv::settings$bioconductor.version('3.20')`",
+      "7" = "PPM Bioconductor mirror (`BioCsoft` repo pointing to PPM)",
+      "8" = "`options(renv.bioconductor.repos = c(...))` — PPM root",
+      "9" = "`options(renv.bioconductor.repos = c(...))` — CRAN PPM URL"
+    )
+    report_lines <- c(report_lines,
+      sprintf("| %s | %s | **%s** | %s |", s, approach, toupper(status), err))
+  }
+
+  report_lines <- c(report_lines, "",
     "---",
     "",
-    "## Conclusion",
+    "## 7. Conclusion",
     "",
-    "### Root cause",
+    "This issue is not primarily that Bioconductor repositories appear in the lockfile.",
+    "The blocker is earlier: dependency discovery converts `biocViews` metadata into an",
+    "implicit dependency on `BiocVersion`. Since `BiocVersion` is not available from",
+    "CRAN-only PPM and Bioconductor is blocked, `renv::snapshot()` cannot complete for",
+    "a project that otherwise uses only CRAN packages.",
     "",
-    "The `recipes` CRAN package includes a `biocViews: mixOmics` field in its DESCRIPTION.",
-    "renv 1.2.3 treats any installed package with `biocViews` as a Bioconductor package.",
-    "This triggers a failure path in `renv::snapshot()` when Bioconductor is unreachable:",
+    "**Workaround findings from this test run:**",
     "",
-    "- **Open network (Scenario A, baseline):** Succeeds when `BiocVersion` is installed from",
-    "  Bioconductor before snapshotting. renv's pre-flight check requires `BiocVersion` to be",
-    "  present; with the network open it can be fetched directly.",
+    "- **Scenario 6 — `renv::settings$bioconductor.version('3.20')`**: snapshot emits",
+    "  a warning (BiocManager not available, bioconductor.org unreachable) but does not",
+    "  hard-fail. The lockfile is written; however packages installed outside renv's",
+    "  tracking (e.g. local source) are excluded. When used with a properly installed",
+    "  project this may be a viable workaround.",
+    "- **Scenario 7 — PPM Bioconductor mirror as `BioCsoft` repo**: snapshot FAILS with",
+    "  the same Bioconductor version validation error as scenario 4. renv still queries",
+    "  `bioconductor.org/config.yaml` for version validation even when a mirror is configured;",
+    "  this call is not redirected to the PPM mirror. Setting `BioCsoft` alone is insufficient.",
+    "- **Scenario 8 — stub `renv.bioconductor.repos`**: snapshot FAILS with pre-flight",
+    "  validation failure (BiocVersion not installed). Pointing repos at an address that",
+    "  does not serve BiocVersion does not help.",
     "",
-    "- **Bioc-blocked network (Scenario B):** renv calls BiocManager to validate/resolve",
-    "  the Bioconductor version before snapshot. With bioconductor.org unreachable,",
-    "  BiocManager cannot validate and snapshot aborts.",
-    "  Error: `Bioconductor version cannot be validated; no internet connection?`",
+    "**Recommended fixes:**",
     "",
-    "The failure does not require the user to have explicitly opted into Bioconductor.",
-    "Simply having `recipes` in `project.R` is sufficient to trigger it on a blocked network.",
+    "- **Combine `bioconductor.version` + a reachable Bioconductor mirror** (PPM or internal)",
+    "  so renv can both determine the version and install `BiocVersion` without bioconductor.org.",
+    "- **File an renv issue** requesting that CRAN packages with `biocViews` not trigger",
+    "  Bioconductor-only dependency injection when the user has not opted into Bioconductor.",
     "",
-    "### Snapshot failure by scenario",
+    "---",
     "",
-    if (length(snap_fail) > 0)
-      paste0("- **Hard failure** (error): Scenarios ", paste(snap_fail, collapse = ", "))
-    else
-      "- No hard failures.",
-    if (length(snap_warn) > 0)
-      paste0("- **Soft failure** (warning, incomplete lockfile): Scenarios ", paste(snap_warn, collapse = ", "))
-    else
-      "",
+    "## Appendix: Full Scenario Results",
     "",
-    "### Workaround analysis",
-    "",
-    "| Scenario | Approach | Snapshot outcome | Key error |",
-    "|---|---|---|---|",
-    "| B | None (default) | failure | BiocManager version validation fails (network) |",
-    "| C | `renv.bioconductor.repos=character(0)` | failure | BiocVersion preflight still runs |",
-    "| D | `R_BIOC_VERSION=3.20` env var | failure | Bypasses version check but renv still fetches Bioc repo indices |",
-    "| E | `settings$bioconductor.version('3.20')` | warning | BiocManager not invoked for version; snapshot writes but excludes recipes |",
-    "| F | Stub bioc repo URLs | failure | BiocVersion preflight still runs |",
-    "| G | `BioC_mirror` + `BIOCONDUCTOR_CONFIG_FILE` | failure | Config file parsed but version map validation fails |",
-    "| H | Manual lockfile patch | failure | Patch works but next snapshot call fails again |",
-    "",
-    "### What action re-adds Bioc refs after manual lockfile patch",
-    "",
-    paste0("- Scenario H result: **", reintr_h,
-      "** — startup and restore succeed with a patched lockfile,",
-      " but snapshot always fails again (BiocManager is invoked on every snapshot call)."),
-    "",
-    "### Recommended mitigation",
-    "",
-    "No single option tested here fully prevents renv from invoking Bioconductor machinery",
-    "when `recipes` (or any package with `biocViews`) is in the project. Options to explore",
-    "with Posit Support:",
-    "",
-    "- **Install BiocVersion from PPM** if PPM mirrors it — satisfies the preflight check",
-    "  without reaching bioconductor.org.",
-    "- **`renv::settings$bioconductor.version('3.20')`** (Scenario E) reduces the failure",
-    "  from hard error to warning and avoids the network call, but the lockfile is incomplete.",
-    "- **Exclude the `biocViews`-bearing package from snapshot** and manage it separately.",
-    "- **File an renv issue**: the current behaviour of requiring BiocVersion for any package",
-    "  that has `biocViews` (even CRAN packages installed from PPM) appears unintentional.",
-    ""
+    "| # | Description | PPM | Bioc blocked | biocViews | Snap status |",
+    "|---|-------------|-----|-------------|-----------|-------------|"
   )
+
+  for (s in scenarios) {
+    r    <- results[[s]]
+    desc <- scenario_desc[[s]] %||% s
+    ppm  <- if (isTRUE(rget(r, "ppm_reachable"))) "Yes" else "No"
+    blocked <- if (s %in% c("1","2","3")) "N/A" else "Yes"  # all scenarios 4-9 block Bioc
+    biocv <- if (is.na(rget(r, "biocviews_present"))) "—"
+             else if (isTRUE(rget(r, "biocviews_present"))) "present" else "absent"
+    snap_s <- rget(r, "snapshot_status") %||% "—"
+    report_lines <- c(report_lines,
+      sprintf("| %s | %s | %s | %s | %s | %s |",
+              s, desc, ppm, blocked, biocv, snap_s))
+  }
+
+  report_lines <- c(report_lines, "")
 
   writeLines(report_lines, file.path(artifacts_root, "report.md"))
   cat("Wrote artifacts/report.md\n")

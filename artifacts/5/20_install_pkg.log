@@ -1,0 +1,40 @@
+=== 20_install_pkg ===
+Scenario: 5 
+Package: glue 
+
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+- Synchronizing project library with the cache ... Done!
+- The cache has been disabled for this project.
+renv cache disabled
+Installing glue via renv::install() (open network)...
+- Querying repositories for available source packages ... Done!
+The following package(s) will be installed:
+- glue [1.8.1]
+These packages will be installed into "/project/renv/library/linux-ubuntu-noble/R-4.4/x86_64-pc-linux-gnu".
+
+# Downloading packages -------------------------------------------------------
+[?25l  (0/1) Downloading: glue                                                                                                                                       [32m✔[0m glue 1.8.1                               [174 kB in 0.61s]
+                                                                                Successfully downloaded 1 package in 0.73 seconds.
+
+# Installing packages --------------------------------------------------------
+                                                                                [32m✔[0m glue 1.8.1                               [installed binary]
+Successfully installed 1 package in 0.13 seconds.
+[?25h
+Install result: success 
+Wrote project.R: library( glue )
+
+Done.

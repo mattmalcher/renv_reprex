@@ -1,0 +1,20 @@
+=== 70_collect_artifacts ===
+Scenario: 1 
+
+result.json already present (written by scenario script)
+
+Outcome:
+{
+  "scenario": "1",
+  "ppm_reachable": true,
+  "bioconductor_reachable": null,
+  "biocviews_present": false,
+  "biocmanager_discovered": false,
+  "biocversion_discovered": false,
+  "snapshot_status": "not_run",
+  "snapshot_error_classification": null,
+  "renv_lock_written": false,
+  "notes": "Dependency discovery only. Fixture: cranlike-no-biocviews. biocViews value: ''."
+} 
+
+Done.

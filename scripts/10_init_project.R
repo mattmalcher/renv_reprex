@@ -10,11 +10,7 @@ library(renv)
 cat("renv version:", as.character(packageVersion("renv")), "\n")
 cat("Working directory:", getwd(), "\n\n")
 
-# No explicit bioconductor arg — we want renv to behave exactly as a user who
-# installs recipes without knowing it has biocViews. The Bioc refs appear
-# automatically via snapshot, not because anyone opted in.
 cat("renv::init()\n\n")
-
 renv::init(restart = FALSE)
 
 cat("\n--- post-init lockfile ---\n")
@@ -26,13 +22,15 @@ if (file.exists("renv.lock")) {
   cat("(no renv.lock created)\n")
 }
 
-# Scenario E: pin Bioconductor version after init so it's written to settings.json
-if (scenario == "E") {
-  cat("Scenario E: setting bioconductor.version = 3.20\n")
+# Scenario 6: pin Bioconductor version after init
+if (scenario == "6") {
+  cat("Scenario 6: setting renv::settings$bioconductor.version('3.20')\n")
   tryCatch(
     renv::settings$bioconductor.version("3.20"),
     error = function(e) cat("WARNING: could not set bioconductor.version:", e$message, "\n")
   )
+  cat("renv/settings.json after bioconductor.version():\n")
+  if (file.exists("renv/settings.json")) cat(paste(readLines("renv/settings.json"), collapse = "\n"), "\n")
 }
 
 cat("\n--- renv/settings.json ---\n")

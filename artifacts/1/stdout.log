@@ -1,0 +1,80 @@
+[run_scenario 1] Running 00_env_diagnostics...
+=== 00_env_diagnostics ===
+Scenario: 1 
+
+Checking PPM: https://packagemanager.posit.co/cran/__linux__/noble/latest 
+PPM status: reachable (HTTP 400) 
+
+Checking Bioconductor: https://bioconductor.org 
+Bioconductor status: reachable (HTTP 200) 
+
+repos:
+                                                         CRAN 
+"https://packagemanager.posit.co/cran/__linux__/noble/latest" 
+
+renv version: 1.2.3 
+PPM reachable: TRUE 
+Bioconductor reachable: TRUE 
+Wrote env_diagnostics.json, session-info.txt, repos.txt
+
+Done.
+[run_scenario 1] Running 01_discover_deps...
+=== 01_discover_deps ===
+Scenario: 1 
+Fixture: cranlike-no-biocviews 
+
+Running renv::dependencies() on: /fixtures/cranlike-no-biocviews/DESCRIPTION 
+
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+biocViews field: (absent) 
+
+Discovered dependencies:
+     Type                                      Source Package Require Version
+1 Imports /fixtures/cranlike-no-biocviews/DESCRIPTION   stats                
+    Dev
+1 FALSE
+
+Wrote discovered-dependencies.csv
+
+BiocManager discovered: FALSE 
+BiocVersion discovered: FALSE 
+Bioconductor dependency type present: FALSE 
+Wrote result.json
+
+Done.
+[run_scenario 1] Running 70_collect_artifacts (no-init-file)...
+=== 70_collect_artifacts ===
+Scenario: 1 
+
+result.json already present (written by scenario script)
+
+Outcome:
+{
+  "scenario": "1",
+  "ppm_reachable": true,
+  "bioconductor_reachable": null,
+  "biocviews_present": false,
+  "biocmanager_discovered": false,
+  "biocversion_discovered": false,
+  "snapshot_status": "not_run",
+  "snapshot_error_classification": null,
+  "renv_lock_written": false,
+  "notes": "Dependency discovery only. Fixture: cranlike-no-biocviews. biocViews value: ''."
+} 
+
+Done.
+[run_scenario 1] Done.

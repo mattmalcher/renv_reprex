@@ -1,0 +1,12 @@
+{
+  "scenario": "7",
+  "ppm_reachable": true,
+  "bioconductor_reachable": false,
+  "biocviews_present": true,
+  "biocmanager_discovered": false,
+  "biocversion_discovered": false,
+  "snapshot_status": "failure",
+  "snapshot_error_classification": "Bioconductor version validation failed",
+  "renv_lock_written": true,
+  "notes": ""
+}

@@ -1,178 +1,154 @@
-# renv / Bioconductor Failure Mode Report
+# renv biocViews → BiocVersion Dependency Failure Report
 
-Generated: 2026-05-29 13:48:27 UTC
-
----
-
-## Environment
-
-- **R version**: R version 4.4.2 (2024-10-31)
-- **renv version**: 1.2.3
-- **OS**: Ubuntu 24.04 (Noble), Docker container
-- **PPM URL**: https://packagemanager.posit.co/cran/__linux__/noble/latest
-- **Trigger package**: recipes
-- **Bioconductor version tested**: 3.20
+Generated: 2026-05-30 08:56:04 UTC
 
 ---
 
-## Scenario Results
+## 1. Executive Summary
 
-| Scenario | Bioc blocked | PPM ok | Bioc refs in lock | Startup | Snapshot | Restore | Re-introduced by |
-|---|---|---|---|---|---|---|---|
-| **A** Control (open network) | No | Yes | Yes | success | success | success | — |
-| **B** Blocked, default config | Yes | Yes | No | success | failure | success | — |
-| **C** Blocked + renv.bioconductor.repos=character(0) | Yes | Yes | No | success | failure | success | — |
-| **D** Blocked + R_BIOC_VERSION env var | Yes | Yes | No | success | failure | success | — |
-| **E** Blocked + renv::settings$bioconductor.version() | Yes | Yes | No | success | warning | success | — |
-| **F** Blocked + non-empty stub repos | Yes | Yes | No | success | failure | success | — |
-| **G** Blocked + BioC_mirror + BIOCONDUCTOR_CONFIG_FILE | Yes | Yes | No | success | failure | success | — |
-| **H** Blocked + manual lockfile patch | Yes | Yes | No | success | failure | success | none |
+A non-empty `biocViews` field in a package DESCRIPTION file causes `renv` dependency
+discovery to inject `BiocManager` and `BiocVersion` as implicit dependencies.
+In a CRAN/PPM-only environment where Bioconductor is blocked, `BiocVersion` cannot
+be resolved, so `renv::snapshot()` cannot complete — even when the user has not
+explicitly depended on any Bioconductor package.
 
----
+**Environment**
 
-## Scenario Details
-
-### Scenario A: Control (open network)
-
-**PPM reachable**: Yes
-**Bioconductor reachable**: Yes
-
-**Bioconductor-related lockfile entries:**
-```
-Bioconductor.Version: 3.20
-```
-
-### Scenario B: Blocked, default config
-
-**PPM reachable**: Yes
-**Bioconductor reachable**: No
-
-**Lockfile**: No Bioconductor section or repos.
-
-**Key error**: `ERROR: invalid version specification ‘unknown version: Bioconductor version cannot be validated; no internet connection?`
-
-### Scenario C: Blocked + renv.bioconductor.repos=character(0)
-
-**PPM reachable**: Yes
-**Bioconductor reachable**: No
-
-**Lockfile**: No Bioconductor section or repos.
-
-**Key error**: `ERROR: aborting snapshot due to pre-flight validation failure `
-
-### Scenario D: Blocked + R_BIOC_VERSION env var
-
-**PPM reachable**: Yes
-**Bioconductor reachable**: No
-
-**Lockfile**: No Bioconductor section or repos.
-
-**Key error**: `ERROR: aborting snapshot due to pre-flight validation failure `
-
-### Scenario E: Blocked + renv::settings$bioconductor.version()
-
-**PPM reachable**: Yes
-**Bioconductor reachable**: No
-
-**Lockfile**: No Bioconductor section or repos.
-
-### Scenario F: Blocked + non-empty stub repos
-
-**PPM reachable**: Yes
-**Bioconductor reachable**: No
-
-**Lockfile**: No Bioconductor section or repos.
-
-**Key error**: `ERROR: aborting snapshot due to pre-flight validation failure `
-
-### Scenario G: Blocked + BioC_mirror + BIOCONDUCTOR_CONFIG_FILE
-
-**PPM reachable**: Yes
-**Bioconductor reachable**: No
-
-**Lockfile**: No Bioconductor section or repos.
-
-**Key error**: `ERROR: invalid version specification ‘unknown version: Bioconductor version map cannot be validated; is it misconfigured?`
-
-### Scenario H: Blocked + manual lockfile patch
-
-**PPM reachable**: Yes
-**Bioconductor reachable**: No
-
-**Lockfile**: No Bioconductor section or repos.
-
-**Key error**: `ERROR: invalid version specification ‘unknown version: Bioconductor version cannot be validated; no internet connection?`
-
-**Lockfile re-introduced by**: none
-
-**Bioc lines before patch:**
-```
-        "URL": "https://bioconductor.org/packages/3.20/bioc"
-        "URL": "https://bioconductor.org/packages/3.20/data/annotation"
-        "URL": "https://bioconductor.org/packages/3.20/data/experiment"
-        "URL": "https://bioconductor.org/packages/3.20/workflows"
-      "Config/testthat/start-first": "bioconductor,python,install,restore,snapshot,retrieve,remotes",
-  "Bioconductor": {
-```
-**Bioc lines after patch:**
-```
-      "Config/testthat/start-first": "bioconductor,python,install,restore,snapshot,retrieve,remotes",
-```
+- R version: R version 4.4.2 (2024-10-31)
+- renv version: 1.2.3
+- OS: Ubuntu 24.04 (Noble), Docker container
+- CRAN repo: Posit Package Manager (Noble Linux binaries)
+- Bioconductor blocking: Docker `--add-host` redirects bioconductor.org → 127.0.0.1
 
 ---
 
-## Conclusion
+## 2. Code-Path Evidence
 
-### Root cause
+The trigger is in `renv/R/dependencies.R`, function `renv_dependencies_discover_description()`:
 
-The `recipes` CRAN package includes a `biocViews: mixOmics` field in its DESCRIPTION.
-renv 1.2.3 treats any installed package with `biocViews` as a Bioconductor package.
-This triggers a failure path in `renv::snapshot()` when Bioconductor is unreachable:
+```r
+# if this is a bioconductor package, add their implicit dependencies
+# guard against packages which have an empty biocViews field
+# https://github.com/rstudio/renv/issues/2149
+if (nzchar(dcf[["biocViews"]] %||% "")) {
+  data[[length(data) + 1L]] <- renv_dependencies_list(
+    source   = path,
+    packages = c(renv_bioconductor_manager(), "BiocVersion")
+  )
+  names(data)[[length(data)]] <- "Bioconductor"
+}
+```
 
-- **Open network (Scenario A, baseline):** Succeeds when `BiocVersion` is installed from
-  Bioconductor before snapshotting. renv's pre-flight check requires `BiocVersion` to be
-  present; with the network open it can be fetched directly.
+- This branch fires on **any** non-empty `biocViews` value.
+- On R ≥ 4.0, `renv_bioconductor_manager()` returns `"BiocManager"`.
+- `BiocManager` is available from CRAN/PPM. **`BiocVersion` is not** — it is a
+  Bioconductor-only package.
+- Therefore any project whose dependency graph includes a package with non-empty
+  `biocViews` will fail `renv::snapshot()` on a CRAN-only, Bioconductor-blocked network.
 
-- **Bioc-blocked network (Scenario B):** renv calls BiocManager to validate/resolve
-  the Bioconductor version before snapshot. With bioconductor.org unreachable,
-  BiocManager cannot validate and snapshot aborts.
-  Error: `Bioconductor version cannot be validated; no internet connection?`
+---
 
-The failure does not require the user to have explicitly opted into Bioconductor.
-Simply having `recipes` in `project.R` is sufficient to trigger it on a blocked network.
+## 3. Minimal Fixture Proof
 
-### Snapshot failure by scenario
+Two tiny local packages were created — identical except for the `biocViews` field.
+Scenarios 1 and 2 run `renv::dependencies()` on each DESCRIPTION directly.
 
-- **Hard failure** (error): Scenarios B, C, D, F, G, H
-- **Soft failure** (warning, incomplete lockfile): Scenarios E
+| Fixture | biocViews field | BiocManager discovered | BiocVersion discovered |
+|---------|----------------|------------------------|------------------------|
+| `cranlike-no-biocviews` | absent | No | No |
+| `cranlike-with-biocviews` | `biocViews: Software` | **Yes** | **Yes** |
 
-### Workaround analysis
+Scenario 1 expected: no `BiocManager`, no `BiocVersion`.
+Scenario 2 expected: `BiocManager` and `BiocVersion` present, type = `Bioconductor`.
 
-| Scenario | Approach | Snapshot outcome | Key error |
-|---|---|---|---|
-| B | None (default) | failure | BiocManager version validation fails (network) |
-| C | `renv.bioconductor.repos=character(0)` | failure | BiocVersion preflight still runs |
-| D | `R_BIOC_VERSION=3.20` env var | failure | Bypasses version check but renv still fetches Bioc repo indices |
-| E | `settings$bioconductor.version('3.20')` | warning | BiocManager not invoked for version; snapshot writes but excludes recipes |
-| F | Stub bioc repo URLs | failure | BiocVersion preflight still runs |
-| G | `BioC_mirror` + `BIOCONDUCTOR_CONFIG_FILE` | failure | Config file parsed but version map validation fails |
-| H | Manual lockfile patch | failure | Patch works but next snapshot call fails again |
+---
 
-### What action re-adds Bioc refs after manual lockfile patch
+## 4. Real-Package Proof: `recipes`
 
-- Scenario H result: **none** — startup and restore succeed with a patched lockfile, but snapshot always fails again (BiocManager is invoked on every snapshot call).
+Scenario 3 installs `recipes` from Posit Package Manager (CRAN) and inspects its metadata.
 
-### Recommended mitigation
+```r
+packageDescription("recipes")[c("Package", "Version", "Repository", "biocViews")]
+```
 
-No single option tested here fully prevents renv from invoking Bioconductor machinery
-when `recipes` (or any package with `biocViews`) is in the project. Options to explore
-with Posit Support:
+- `biocViews`: `mixOmics`
 
-- **Install BiocVersion from PPM** if PPM mirrors it — satisfies the preflight check
-  without reaching bioconductor.org.
-- **`renv::settings$bioconductor.version('3.20')`** (Scenario E) reduces the failure
-  from hard error to warning and avoids the network call, but the lockfile is incomplete.
-- **Exclude the `biocViews`-bearing package from snapshot** and manage it separately.
-- **File an renv issue**: the current behaviour of requiring BiocVersion for any package
-  that has `biocViews` (even CRAN packages installed from PPM) appears unintentional.
+Key point: `recipes` is installed from CRAN/PPM, not from Bioconductor.
+Its `biocViews` metadata is enough to trigger renv's Bioconductor dependency injection.
+
+---
+
+## 5. Snapshot Proof Under Blocked Bioconductor
+
+Scenarios 4 and 5 use identical network configuration (Bioconductor blocked, PPM reachable).
+The only difference is which fixture package is installed.
+
+| Scenario | Fixture | biocViews | Bioc blocked | Snapshot status | Error |
+|----------|---------|-----------|--------------|-----------------|-------|
+| 4 | `cranlike-with-biocviews` | present | Yes | **FAILURE** | Bioconductor version validation failed |
+| 5 | `cranlike-no-biocviews` | absent | Yes | **SUCCESS** | — |
+
+Scenario 5 is the key control: the same blocked network does **not** prevent snapshot
+when there is no `biocViews` trigger. The failure in Scenario 4 is caused purely by
+renv's implicit `BiocVersion` dependency injection.
+
+---
+
+## 6. Workaround Analysis
+
+| Scenario | Approach | Snapshot status | Error / Notes |
+|----------|---------|-----------------|---------------|
+| 4 | None — baseline failure | **FAILURE** | Bioconductor version validation failed |
+| 6 | `renv::settings$bioconductor.version('3.20')` | **WARNING** |  |
+| 7 | PPM Bioconductor mirror (`BioCsoft` repo pointing to PPM) | **FAILURE** | Bioconductor version validation failed |
+| 8 | `options(renv.bioconductor.repos = c(...))` — PPM root | **FAILURE** | aborting snapshot due to pre-flight validation failure |
+| 9 | `options(renv.bioconductor.repos = c(...))` — CRAN PPM URL | **FAILURE** | aborting snapshot due to pre-flight validation failure |
+
+---
+
+## 7. Conclusion
+
+This issue is not primarily that Bioconductor repositories appear in the lockfile.
+The blocker is earlier: dependency discovery converts `biocViews` metadata into an
+implicit dependency on `BiocVersion`. Since `BiocVersion` is not available from
+CRAN-only PPM and Bioconductor is blocked, `renv::snapshot()` cannot complete for
+a project that otherwise uses only CRAN packages.
+
+**Workaround findings from this test run:**
+
+- **Scenario 6 — `renv::settings$bioconductor.version('3.20')`**: snapshot emits
+  a warning (BiocManager not available, bioconductor.org unreachable) but does not
+  hard-fail. The lockfile is written; however packages installed outside renv's
+  tracking (e.g. local source) are excluded. When used with a properly installed
+  project this may be a viable workaround.
+- **Scenario 7 — PPM Bioconductor mirror as `BioCsoft` repo**: snapshot FAILS with
+  the same Bioconductor version validation error as scenario 4. renv still queries
+  `bioconductor.org/config.yaml` for version validation even when a mirror is configured;
+  this call is not redirected to the PPM mirror. Setting `BioCsoft` alone is insufficient.
+- **Scenario 8 — stub `renv.bioconductor.repos`**: snapshot FAILS with pre-flight
+  validation failure (BiocVersion not installed). Pointing repos at an address that
+  does not serve BiocVersion does not help.
+
+**Recommended fixes:**
+
+- **Combine `bioconductor.version` + a reachable Bioconductor mirror** (PPM or internal)
+  so renv can both determine the version and install `BiocVersion` without bioconductor.org.
+- **File an renv issue** requesting that CRAN packages with `biocViews` not trigger
+  Bioconductor-only dependency injection when the user has not opted into Bioconductor.
+
+---
+
+## Appendix: Full Scenario Results
+
+| # | Description | PPM | Bioc blocked | biocViews | Snap status |
+|---|-------------|-----|-------------|-----------|-------------|
+| 1 | Discovery — no biocViews | Yes | N/A | absent | not_run |
+| 2 | Discovery — with biocViews | Yes | N/A | present | not_run |
+| 3 | Real-world: recipes from CRAN/PPM | Yes | N/A | present | not_run |
+| 4 | Snapshot failure: with biocViews, Bioc blocked | Yes | Yes | present | failure |
+| 5 | Snapshot control: no biocViews, Bioc blocked | Yes | Yes | absent | success |
+| 6 | Workaround: renv::settings$bioconductor.version('3.20') | Yes | Yes | present | warning |
+| 7 | Workaround: BiocVersion via PPM Bioconductor mirror | Yes | Yes | present | failure |
+| 8 | Workaround: stub renv.bioconductor.repos (PPM root) | Yes | Yes | present | failure |
+| 9 | Workaround: renv.bioconductor.repos pointing at CRAN PPM URL | Yes | Yes | present | failure |
 

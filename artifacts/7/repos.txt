@@ -1,0 +1,2 @@
+CRAN=https://packagemanager.posit.co/cran/__linux__/noble/latest
+BioCsoft=https://packagemanager.posit.co/bioconductor/__linux__/noble/latest

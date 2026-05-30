@@ -5,13 +5,16 @@ set -euo pipefail
 SCENARIO="${1:-${SCENARIO:-unknown}}"
 export SCENARIO
 
+# Two-phase scenarios (4, 6-9) pass PHASE=install or PHASE=snapshot from the host.
+# Scenario 5 and discovery scenarios (1-3) run single-phase and ignore PHASE.
+PHASE="${PHASE:-}"
+
 OUT="/artifacts/${SCENARIO}"
 mkdir -p "$OUT"
 PROJ="/project"
 
 log() { echo "[run_scenario ${SCENARIO}] $*"; }
 
-# Helper: run an R script in /project (reads site Rprofile + project .Rprofile).
 run_r() {
   local script="$1"
   local label
@@ -30,8 +33,6 @@ run_r() {
   echo "OK" > "${OUT}/${label}.status"
 }
 
-# Helper: run an R script skipping the project .Rprofile (for artifact/reporting
-# scripts that don't need renv active and must not fail due to BiocManager issues).
 run_r_noenv() {
   local script="$1"
   local label
@@ -50,11 +51,7 @@ run_r_noenv() {
   echo "OK" > "${OUT}/${label}.status"
 }
 
-# ── scenario-specific setup ──────────────────────────────────────────────────
-
 setup_rprofile() {
-  # Copy scenario template if it exists. If no template, leave .Rprofile absent
-  # so renv::init() can create it with the activation stanza itself.
   local tpl="/templates/scenario_${SCENARIO}.Rprofile"
   if [ -f "$tpl" ]; then
     cp "$tpl" "${PROJ}/.Rprofile"
@@ -64,92 +61,125 @@ setup_rprofile() {
   fi
 }
 
-setup_renviron() {
-  local tpl="/templates/scenario_${SCENARIO}.Renviron"
-  if [ -f "$tpl" ]; then
-    cp "$tpl" "${PROJ}/.Renviron"
-    log "Installed .Renviron from $tpl"
-  fi
-}
-
 cd "$PROJ"
 
 case "$SCENARIO" in
 
   REPORT)
-    # Cross-scenario summary — no R project needed
     exec Rscript --no-save --no-restore --no-init-file /scripts/70_collect_artifacts.R
     ;;
 
-  A)
-    # Scenario A: open network, baseline that should succeed.
-    # BiocVersion is installed explicitly (Bioc is reachable) to satisfy renv's
-    # pre-flight check before snapshot.
-    setup_rprofile
-    setup_renviron
+  1)
+    # Dependency discovery without biocViews — baseline, no snapshot
     run_r /scripts/00_env_diagnostics.R
-    run_r /scripts/10_init_project.R
-    run_r /scripts/20_install_trigger_pkg.R
-    run_r /scripts/25_install_biocversion.R
-    run_r /scripts/30_snapshot.R       || true
-    run_r /scripts/60_startup_check.R  || true
-    run_r /scripts/50_restore.R        || true
+    export FIXTURE=cranlike-no-biocviews
+    run_r /scripts/01_discover_deps.R
     run_r_noenv /scripts/70_collect_artifacts.R
     ;;
 
-  H)
-    # Scenario H: manual lockfile patch approach.
-    # Uses snapshot(check=FALSE) to bypass the BiocVersion preflight and produce a
-    # lockfile, patches out Bioc refs, then tests which renv operation re-adds them.
+  2)
+    # Dependency discovery with non-empty biocViews — proves the crux
+    run_r /scripts/00_env_diagnostics.R
+    export FIXTURE=cranlike-with-biocviews
+    run_r /scripts/01_discover_deps.R
+    run_r_noenv /scripts/70_collect_artifacts.R
+    ;;
+
+  3)
+    # Real-world trigger: recipes is CRAN-installed but has non-empty biocViews
+    run_r /scripts/00_env_diagnostics.R
+    run_r /scripts/03_inspect_recipes.R
+    run_r_noenv /scripts/70_collect_artifacts.R
+    ;;
+
+  4)
+    # Snapshot failure: metaRNASeq (biocViews present), Bioc blocked.
+    # Two-phase: install via renv with open network; snapshot with Bioc blocked.
+    if [ "$PHASE" = "install" ]; then
+      setup_rprofile
+      export PACKAGE=metaRNASeq
+      run_r /scripts/10_init_project.R
+      run_r /scripts/20_install_pkg.R
+    elif [ "$PHASE" = "snapshot" ]; then
+      run_r /scripts/00_env_diagnostics.R
+      run_r /scripts/30_snapshot.R || true
+      run_r_noenv /scripts/70_collect_artifacts.R
+    fi
+    ;;
+
+  5)
+    # Snapshot control: glue (no biocViews), Bioc blocked throughout — should succeed.
+    # Single-phase: renv::install(glue) works fine even with Bioc blocked (no biocViews).
     setup_rprofile
-    setup_renviron
     run_r /scripts/00_env_diagnostics.R
     run_r /scripts/10_init_project.R
-    run_r /scripts/20_install_trigger_pkg.R
-
-    # Generate lockfile bypassing BiocVersion preflight check
-    run_r /scripts/31_snapshot_force.R
-
-    [ -f "${PROJ}/renv.lock" ] && cp "${PROJ}/renv.lock" "${OUT}/H_pre_patch_lockfile.json"
-
-    # Patch out Bioconductor references (run without project .Rprofile)
-    run_r_noenv /scripts/40_patch_lockfile.R
-    [ -f "${PROJ}/renv.lock" ] && cp "${PROJ}/renv.lock" "${OUT}/H_patched_lockfile.json"
-
-    # ── sub-test: startup ───────────────────────────────────────────────────
-    log "--- H: sub-test startup ---"
-    cp "${OUT}/H_patched_lockfile.json" "${PROJ}/renv.lock"
-    SUBTEST=startup run_r /scripts/60_startup_check.R || true
-    [ -f "${PROJ}/renv.lock" ] && cp "${PROJ}/renv.lock" "${OUT}/H_after_startup_lockfile.json"
-
-    # ── sub-test: snapshot ──────────────────────────────────────────────────
-    log "--- H: sub-test snapshot ---"
-    cp "${OUT}/H_patched_lockfile.json" "${PROJ}/renv.lock"
-    SUBTEST=snapshot run_r /scripts/30_snapshot.R || true
-    [ -f "${PROJ}/renv.lock" ] && cp "${PROJ}/renv.lock" "${OUT}/H_after_snapshot_lockfile.json"
-
-    # ── sub-test: restore ───────────────────────────────────────────────────
-    log "--- H: sub-test restore ---"
-    cp "${OUT}/H_patched_lockfile.json" "${PROJ}/renv.lock"
-    SUBTEST=restore run_r /scripts/50_restore.R || true
-    [ -f "${PROJ}/renv.lock" ] && cp "${PROJ}/renv.lock" "${OUT}/H_after_restore_lockfile.json"
-
+    export PACKAGE=glue
+    run_r /scripts/20_install_pkg.R
+    run_r /scripts/30_snapshot.R || true
     run_r_noenv /scripts/70_collect_artifacts.R
+    ;;
+
+  6)
+    # Workaround: renv::settings$bioconductor.version("3.20")
+    # bioconductor.version is set in 10_init_project.R when SCENARIO=6
+    if [ "$PHASE" = "install" ]; then
+      setup_rprofile
+      export PACKAGE=metaRNASeq
+      run_r /scripts/10_init_project.R
+      run_r /scripts/20_install_pkg.R
+    elif [ "$PHASE" = "snapshot" ]; then
+      run_r /scripts/00_env_diagnostics.R
+      run_r /scripts/30_snapshot.R || true
+      run_r_noenv /scripts/70_collect_artifacts.R
+    fi
+    ;;
+
+  7)
+    # Workaround: BiocVersion available via PPM Bioconductor mirror
+    # bioconductor.org blocked; PPM BioCsoft repo is reachable
+    if [ "$PHASE" = "install" ]; then
+      setup_rprofile
+      export PACKAGE=metaRNASeq
+      run_r /scripts/10_init_project.R
+      run_r /scripts/20_install_pkg.R
+    elif [ "$PHASE" = "snapshot" ]; then
+      run_r /scripts/00_env_diagnostics.R
+      run_r /scripts/30_snapshot.R || true
+      run_r_noenv /scripts/70_collect_artifacts.R
+    fi
+    ;;
+
+  8)
+    # Workaround: stub renv.bioconductor.repos pointing at PPM root
+    if [ "$PHASE" = "install" ]; then
+      setup_rprofile
+      export PACKAGE=metaRNASeq
+      run_r /scripts/10_init_project.R
+      run_r /scripts/20_install_pkg.R
+    elif [ "$PHASE" = "snapshot" ]; then
+      run_r /scripts/00_env_diagnostics.R
+      run_r /scripts/30_snapshot.R || true
+      run_r_noenv /scripts/70_collect_artifacts.R
+    fi
+    ;;
+
+  9)
+    # Workaround: renv.bioconductor.repos pointing at CRAN PPM URL
+    if [ "$PHASE" = "install" ]; then
+      setup_rprofile
+      export PACKAGE=metaRNASeq
+      run_r /scripts/10_init_project.R
+      run_r /scripts/20_install_pkg.R
+    elif [ "$PHASE" = "snapshot" ]; then
+      run_r /scripts/00_env_diagnostics.R
+      run_r /scripts/30_snapshot.R || true
+      run_r_noenv /scripts/70_collect_artifacts.R
+    fi
     ;;
 
   *)
-    # Scenarios B–G: Bioconductor blocked, PPM reachable.
-    # Each scenario runs its own full workflow — no lockfile substitution.
-    # The workaround (if any) is applied via the scenario's .Rprofile/.Renviron template.
-    setup_rprofile
-    setup_renviron
-    run_r /scripts/00_env_diagnostics.R
-    run_r /scripts/10_init_project.R
-    run_r /scripts/20_install_trigger_pkg.R
-    run_r /scripts/30_snapshot.R      || true
-    run_r /scripts/60_startup_check.R || true
-    run_r /scripts/50_restore.R       || true
-    run_r_noenv /scripts/70_collect_artifacts.R
+    log "Unknown scenario: ${SCENARIO}"
+    exit 1
     ;;
 esac
 

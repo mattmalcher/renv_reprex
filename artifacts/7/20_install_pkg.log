@@ -1,0 +1,47 @@
+=== 20_install_pkg ===
+Scenario: 7 
+Package: metaRNASeq 
+
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+- Synchronizing project library with the cache ... Done!
+- The cache has been disabled for this project.
+renv cache disabled
+Installing metaRNASeq via renv::install() (open network)...
+- Querying repositories for available source packages ... Done!
+renv was unable to query available packages from the following repositories:
+- # https://packagemanager.posit.co/bioconductor/__linux__/noble/latest/src/contrib --------
+error downloading 'https://packagemanager.posit.co/bioconductor/__linux__/noble/latest/src/contrib/PACKAGES.rds' [error code 22]
+error downloading 'https://packagemanager.posit.co/bioconductor/__linux__/noble/latest/src/contrib/PACKAGES.gz' [error code 22]
+error downloading 'https://packagemanager.posit.co/bioconductor/__linux__/noble/latest/src/contrib/PACKAGES' [error code 22]
+
+
+The following package(s) will be installed:
+- metaRNASeq [1.0.8]
+These packages will be installed into "/project/renv/library/linux-ubuntu-noble/R-4.4/x86_64-pc-linux-gnu".
+
+# Downloading packages -------------------------------------------------------
+[?25l  (0/1) Downloading: metaRNASeq                                                                                                                                 [32m✔[0m metaRNASeq 1.0.8                         [1.3 MB in 0.64s]
+                                                                                Successfully downloaded 1 package in 0.76 seconds.
+
+# Installing packages --------------------------------------------------------
+                                                                                [32m✔[0m metaRNASeq 1.0.8                         [installed binary]
+Successfully installed 1 package in 0.13 seconds.
+[?25h
+Install result: success 
+Wrote project.R: library( metaRNASeq )
+
+Done.

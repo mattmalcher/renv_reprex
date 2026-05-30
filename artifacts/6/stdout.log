@@ -1,0 +1,284 @@
+[run_scenario 6] Installed .Rprofile from /templates/scenario_6.Rprofile
+[run_scenario 6] Running 10_init_project...
+=== 10_init_project ===
+Scenario: 6 
+
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+renv version: 1.2.3 
+Working directory: /project 
+
+renv::init()
+
+The following package(s) will be updated in the lockfile:
+
+# RSPM -----------------------------------------------------------------------
+- renv   [* -> 1.2.3]
+
+The version of R recorded in the lockfile will be updated:
+- R      [* -> 4.4.2]
+
+- Lockfile written to "/project/renv.lock".
+
+--- post-init lockfile ---
+{
+  "R": {
+    "Version": "4.4.2",
+    "Repositories": [
+      {
+        "Name": "CRAN",
+        "URL": "https://packagemanager.posit.co/cran/latest"
+      }
+    ]
+  },
+  "Packages": {
+    "renv": {
+      "Package": "renv",
+      "Version": "1.2.3",
+      "Source": "Repository",
+      "Type": "Package",
+      "Title": "Project Environments",
+      "Authors@R": "c( person(\"Kevin\", \"Ushey\", role = c(\"aut\", \"cre\"), email = \"kevin@rstudio.com\", comment = c(ORCID = \"0000-0003-2880-7407\")), person(\"Hadley\", \"Wickham\", role = c(\"aut\"), email = \"hadley@rstudio.com\", comment = c(ORCID = \"0000-0003-4757-117X\")), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\")) )",
+      "Description": "A dependency management toolkit for R. Using 'renv', you can create and manage project-local R libraries, save the state of these libraries to a 'lockfile', and later restore your library as required. Together, these tools can help make your projects more isolated, portable, and reproducible.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://rstudio.github.io/renv/, https://github.com/rstudio/renv",
+      "BugReports": "https://github.com/rstudio/renv/issues",
+      "Imports": [
+        "utils"
+      ],
+      "Suggests": [
+        "BiocManager",
+        "cli",
+        "compiler",
+        "covr",
+        "cpp11",
+        "curl",
+        "devtools",
+        "generics",
+        "gitcreds",
+        "jsonlite",
+        "jsonvalidate",
+        "knitr",
+        "miniUI",
+        "modules",
+        "packrat",
+        "pak",
+        "R6",
+        "remotes",
+        "reticulate",
+        "rmarkdown",
+        "rstudioapi",
+        "shiny",
+        "testthat",
+        "uuid",
+        "waldo",
+        "yaml",
+        "webfakes"
+      ],
+      "Encoding": "UTF-8",
+      "RoxygenNote": "7.3.3",
+      "VignetteBuilder": "knitr",
+      "Config/Needs/website": "tidyverse/tidytemplate",
+      "Config/testthat/edition": "3",
+      "Config/testthat/parallel": "true",
+      "Config/testthat/start-first": "bioconductor,python,install,restore,snapshot,retrieve,remotes",
+      "NeedsCompilation": "no",
+      "Author": "Kevin Ushey [aut, cre] (ORCID: <https://orcid.org/0000-0003-2880-7407>), Hadley Wickham [aut] (ORCID: <https://orcid.org/0000-0003-4757-117X>), Posit Software, PBC [cph, fnd]",
+      "Maintainer": "Kevin Ushey <kevin@rstudio.com>",
+      "Repository": "RSPM"
+    }
+  }
+} 
+[1] TRUE
+Scenario 6: setting renv::settings$bioconductor.version('3.20')
+renv/settings.json after bioconductor.version():
+{
+  "bioconductor.version": "3.20",
+  "external.libraries": [],
+  "ignored.packages": [],
+  "lockfile.sanitize": true,
+  "package.dependency.fields": [
+    "Imports",
+    "Depends",
+    "LinkingTo"
+  ],
+  "ppm.enabled": null,
+  "ppm.ignored.urls": [],
+  "r.version": null,
+  "snapshot.dev": false,
+  "snapshot.type": "implicit",
+  "use.cache": true,
+  "vcs.ignore.cellar": true,
+  "vcs.ignore.library": true,
+  "vcs.ignore.local": true,
+  "vcs.manage.ignores": true
+} 
+
+--- renv/settings.json ---
+{
+  "bioconductor.version": "3.20",
+  "external.libraries": [],
+  "ignored.packages": [],
+  "lockfile.sanitize": true,
+  "package.dependency.fields": [
+    "Imports",
+    "Depends",
+    "LinkingTo"
+  ],
+  "ppm.enabled": null,
+  "ppm.ignored.urls": [],
+  "r.version": null,
+  "snapshot.dev": false,
+  "snapshot.type": "implicit",
+  "use.cache": true,
+  "vcs.ignore.cellar": true,
+  "vcs.ignore.library": true,
+  "vcs.ignore.local": true,
+  "vcs.manage.ignores": true
+} 
+[1] TRUE
+
+Done.
+[run_scenario 6] Running 20_install_pkg...
+=== 20_install_pkg ===
+Scenario: 6 
+Package: metaRNASeq 
+
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+- Synchronizing project library with the cache ... Done!
+- The cache has been disabled for this project.
+renv cache disabled
+Installing metaRNASeq via renv::install() (open network)...
+- Querying repositories for available source packages ... Done!
+The following package(s) will be installed:
+- metaRNASeq [1.0.8]
+These packages will be installed into "/project/renv/library/linux-ubuntu-noble/R-4.4/x86_64-pc-linux-gnu".
+
+# Downloading packages -------------------------------------------------------
+[?25l  (0/1) Downloading: metaRNASeq                                                                                                                                 [32m✔[0m metaRNASeq 1.0.8                         [1.3 MB in 0.66s]
+                                                                                Successfully downloaded 1 package in 0.78 seconds.
+
+# Installing packages --------------------------------------------------------
+                                                                                [32m✔[0m metaRNASeq 1.0.8                         [installed binary]
+Successfully installed 1 package in 0.13 seconds.
+[?25h
+Install result: success 
+Wrote project.R: library( metaRNASeq )
+
+Done.
+[run_scenario 6] Done.
+[run_scenario 6] Running 00_env_diagnostics...
+- The project is out-of-sync -- use `renv::status()` for details.
+- The project is out-of-sync -- use `renv::status()` for details.
+=== 00_env_diagnostics ===
+Scenario: 6 
+
+Checking PPM: https://packagemanager.posit.co/cran/__linux__/noble/latest 
+PPM status: reachable (HTTP 400) 
+
+Checking Bioconductor: https://bioconductor.org 
+Warning message:
+In system2("curl", args, stdout = TRUE, stderr = FALSE) :
+  running command ''curl' -s -o /dev/null -w %{http_code} --connect-timeout 10 --max-time 10 https://bioconductor.org 2>/dev/null' had status 7 and error message 'Function not implemented'
+Bioconductor status: blocked: no HTTP response 
+
+repos:
+                                                         CRAN 
+"https://packagemanager.posit.co/cran/__linux__/noble/latest" 
+
+renv version: 1.2.3 
+PPM reachable: TRUE 
+Bioconductor reachable: FALSE 
+Wrote env_diagnostics.json, session-info.txt, repos.txt
+
+Done.
+[run_scenario 6] Running 30_snapshot...
+- The project is out-of-sync -- use `renv::status()` for details.
+- The project is out-of-sync -- use `renv::status()` for details.
+=== 30_snapshot ===
+Scenario: 6 
+
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+Running renv::dependencies() to capture dependency list...
+Wrote discovered-dependencies.csv
+BiocManager in deps: FALSE 
+BiocVersion in deps: FALSE 
+
+Running renv::snapshot()...
+One or more Bioconductor packages are used in your project,
+but the BiocManager package is not available.
+
+Consider installing BiocManager before snapshot.
+
+[?25l[?25hWARNING: URL 'https://bioconductor.org/config.yaml': status was 'Couldn't connect to server' 
+Snapshot result: warning 
+
+Lockfile has Bioconductor refs: FALSE 
+[1] TRUE
+
+Done.
+[run_scenario 6] Running 70_collect_artifacts (no-init-file)...
+=== 70_collect_artifacts ===
+Scenario: 6 
+
+Saved /project/renv.lock → renv.lock 
+Saved /project/renv/settings.json → renv-settings.json 
+Wrote result.json
+
+Outcome:
+{
+  "scenario": "6",
+  "ppm_reachable": true,
+  "bioconductor_reachable": false,
+  "biocviews_present": true,
+  "biocmanager_discovered": false,
+  "biocversion_discovered": false,
+  "snapshot_status": "warning",
+  "snapshot_error_classification": null,
+  "renv_lock_written": true,
+  "notes": ""
+} 
+
+Done.
+[run_scenario 6] Done.

@@ -1,0 +1,35 @@
+- The project is out-of-sync -- use `renv::status()` for details.
+- The project is out-of-sync -- use `renv::status()` for details.
+=== 30_snapshot ===
+Scenario: 7 
+
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+Running renv::dependencies() to capture dependency list...
+Wrote discovered-dependencies.csv
+BiocManager in deps: FALSE 
+BiocVersion in deps: FALSE 
+
+Running renv::snapshot()...
+ERROR: invalid version specification ‘unknown version: Bioconductor version cannot be validated; no internet connection?
+    See #troubleshooting section in vignette’ 
+Snapshot result: error: invalid version specification ‘unknown version: Bioconductor version cannot be validated; no internet connection?
+    See #troubleshooting section in vignette’ 
+
+Lockfile has Bioconductor refs: FALSE 
+[1] TRUE
+
+Done.

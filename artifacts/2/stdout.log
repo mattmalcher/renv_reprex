@@ -1,0 +1,84 @@
+[run_scenario 2] Running 00_env_diagnostics...
+=== 00_env_diagnostics ===
+Scenario: 2 
+
+Checking PPM: https://packagemanager.posit.co/cran/__linux__/noble/latest 
+PPM status: reachable (HTTP 400) 
+
+Checking Bioconductor: https://bioconductor.org 
+Bioconductor status: reachable (HTTP 200) 
+
+repos:
+                                                         CRAN 
+"https://packagemanager.posit.co/cran/__linux__/noble/latest" 
+
+renv version: 1.2.3 
+PPM reachable: TRUE 
+Bioconductor reachable: TRUE 
+Wrote env_diagnostics.json, session-info.txt, repos.txt
+
+Done.
+[run_scenario 2] Running 01_discover_deps...
+=== 01_discover_deps ===
+Scenario: 2 
+Fixture: cranlike-with-biocviews 
+
+Running renv::dependencies() on: /fixtures/cranlike-with-biocviews/DESCRIPTION 
+
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+biocViews field: Software 
+
+Discovered dependencies:
+          Type                                        Source     Package
+1      Imports /fixtures/cranlike-with-biocviews/DESCRIPTION       stats
+2 Bioconductor /fixtures/cranlike-with-biocviews/DESCRIPTION BiocManager
+3 Bioconductor /fixtures/cranlike-with-biocviews/DESCRIPTION BiocVersion
+  Require Version   Dev
+1                 FALSE
+2                 FALSE
+3                 FALSE
+
+Wrote discovered-dependencies.csv
+
+BiocManager discovered: TRUE 
+BiocVersion discovered: TRUE 
+Bioconductor dependency type present: TRUE 
+Wrote result.json
+
+Done.
+[run_scenario 2] Running 70_collect_artifacts (no-init-file)...
+=== 70_collect_artifacts ===
+Scenario: 2 
+
+result.json already present (written by scenario script)
+
+Outcome:
+{
+  "scenario": "2",
+  "ppm_reachable": true,
+  "bioconductor_reachable": null,
+  "biocviews_present": true,
+  "biocmanager_discovered": true,
+  "biocversion_discovered": true,
+  "snapshot_status": "not_run",
+  "snapshot_error_classification": null,
+  "renv_lock_written": false,
+  "notes": "Dependency discovery only. Fixture: cranlike-with-biocviews. biocViews value: 'Software'."
+} 
+
+Done.
+[run_scenario 2] Done.

@@ -1,0 +1,39 @@
+=== 20_install_fixture ===
+Scenario: 4 
+Fixture: cranlike-with-biocviews 
+
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+Installing withbiocviews from: /fixtures/cranlike-with-biocviews 
+Target library: /project/renv/library/linux-ubuntu-noble/R-4.4/x86_64-pc-linux-gnu 
+Warning: unknown option ‘--library’
+Warning: invalid package ‘/project/renv/library/linux-ubuntu-noble/R-4.4/x86_64-pc-linux-gnu’
+* installing to library ‘/usr/local/lib/R/site-library’
+* installing *source* package ‘withbiocviews’ ...
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+No man pages found in package  ‘withbiocviews’ 
+*** installing help indices
+** building package indices
+* DONE (withbiocviews)
+
+Install result: success 
+Wrote project.R: library( withbiocviews )
+[1] TRUE
+
+Done.

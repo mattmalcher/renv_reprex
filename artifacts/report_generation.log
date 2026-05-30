@@ -1,7 +1,7 @@
 === 70_collect_artifacts ===
 Scenario: REPORT 
 
-Wrote artifacts/summary.json
+Wrote summary.json
 Wrote artifacts/report.md
 
 Done.

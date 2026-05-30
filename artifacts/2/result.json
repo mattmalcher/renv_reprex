@@ -1,0 +1,12 @@
+{
+  "scenario": "2",
+  "ppm_reachable": true,
+  "bioconductor_reachable": null,
+  "biocviews_present": true,
+  "biocmanager_discovered": true,
+  "biocversion_discovered": true,
+  "snapshot_status": "not_run",
+  "snapshot_error_classification": null,
+  "renv_lock_written": false,
+  "notes": "Dependency discovery only. Fixture: cranlike-with-biocviews. biocViews value: 'Software'."
+}

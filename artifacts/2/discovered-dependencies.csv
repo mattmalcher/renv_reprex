@@ -1,0 +1,4 @@
+"Type","Source","Package","Require","Version","Dev"
+"Imports","/fixtures/cranlike-with-biocviews/DESCRIPTION","stats","","",FALSE
+"Bioconductor","/fixtures/cranlike-with-biocviews/DESCRIPTION","BiocManager","","",FALSE
+"Bioconductor","/fixtures/cranlike-with-biocviews/DESCRIPTION","BiocVersion","","",FALSE

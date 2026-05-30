@@ -1,0 +1,41 @@
+=== 01_discover_deps ===
+Scenario: 2 
+Fixture: cranlike-with-biocviews 
+
+Running renv::dependencies() on: /fixtures/cranlike-with-biocviews/DESCRIPTION 
+
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+biocViews field: Software 
+
+Discovered dependencies:
+          Type                                        Source     Package
+1      Imports /fixtures/cranlike-with-biocviews/DESCRIPTION       stats
+2 Bioconductor /fixtures/cranlike-with-biocviews/DESCRIPTION BiocManager
+3 Bioconductor /fixtures/cranlike-with-biocviews/DESCRIPTION BiocVersion
+  Require Version   Dev
+1                 FALSE
+2                 FALSE
+3                 FALSE
+
+Wrote discovered-dependencies.csv
+
+BiocManager discovered: TRUE 
+BiocVersion discovered: TRUE 
+Bioconductor dependency type present: TRUE 
+Wrote result.json
+
+Done.
