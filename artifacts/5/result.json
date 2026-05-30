@@ -1,5 +1,6 @@
 {
   "scenario": "5",
+  "operation": "renv::snapshot()",
   "ppm_reachable": true,
   "bioconductor_reachable": false,
   "biocviews_present": false,
@@ -7,6 +8,11 @@
   "biocversion_discovered": false,
   "snapshot_status": "success",
   "snapshot_error_classification": null,
+  "snapshot_warnings": [],
+  "target_package": "metaRNASeq",
+  "target_package_recorded": true,
+  "biocversion_in_lock": false,
+  "bioc_source_tagged": false,
   "renv_lock_written": true,
   "notes": ""
 }

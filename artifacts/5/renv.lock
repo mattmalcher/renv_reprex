@@ -9,46 +9,29 @@
     ]
   },
   "Packages": {
-    "glue": {
-      "Package": "glue",
-      "Version": "1.8.1",
+    "metaRNASeq": {
+      "Package": "metaRNASeq",
+      "Version": "1.0.8",
       "Source": "Repository",
-      "Title": "Interpreted String Literals",
-      "Authors@R": "c( person(\"Jim\", \"Hester\", role = \"aut\", comment = c(ORCID = \"0000-0002-2739-7082\")), person(\"Jennifer\", \"Bryan\", , \"jenny@posit.co\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0002-6983-2759\")), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\"), comment = c(ROR = \"03wc8by49\")) )",
-      "Description": "An implementation of interpreted string literals, inspired by Python's Literal String Interpolation <https://www.python.org/dev/peps/pep-0498/> and Docstrings <https://www.python.org/dev/peps/pep-0257/> and Julia's Triple-Quoted String Literals <https://docs.julialang.org/en/v1.3/manual/strings/#Triple-Quoted-String-Literals-1>.",
-      "License": "MIT + file LICENSE",
-      "URL": "https://glue.tidyverse.org/, https://github.com/tidyverse/glue",
-      "BugReports": "https://github.com/tidyverse/glue/issues",
+      "Type": "Package",
+      "Title": "Meta-Analysis of RNA-Seq Data",
+      "Date": "2025-03-26",
+      "Authors@R": "c(person(given = \"Guillemette\", family = \"Marot\", role = c(\"aut\")), person(given = \"Andrea\", family = \"Rau\", role = \"aut\"), person(given = \"Florence\", family = \"Jaffrezic\", role = \"aut\"), person(given = \"Samuel\", family = \"Blanck\", role = c(\"ctb\", \"cre\"), email = \"samuel.blanck@univ-lille.fr\"))",
       "Depends": [
-        "R (>= 4.1)"
-      ],
-      "Imports": [
-        "methods"
+        "R (>= 3.5.0)"
       ],
       "Suggests": [
-        "crayon",
-        "DBI (>= 1.2.0)",
-        "dplyr",
-        "knitr",
-        "rlang",
-        "rmarkdown",
-        "RSQLite",
-        "testthat (>= 3.2.0)",
-        "vctrs (>= 0.3.0)",
-        "waldo (>= 0.5.3)",
-        "withr"
+        "DESeq2 (>= 1.0.17)",
+        "VennDiagram (>= 1.6.20)"
       ],
-      "VignetteBuilder": "knitr",
-      "ByteCompile": "true",
-      "Config/Needs/website": "bench, forcats, ggbeeswarm, ggplot2, R.utils, rprintf, tidyr, tidyverse/tidytemplate",
-      "Config/testthat/edition": "3",
-      "Config/usethis/last-upkeep": "2026-04-16",
-      "Encoding": "UTF-8",
-      "RoxygenNote": "7.3.3",
-      "NeedsCompilation": "yes",
-      "Author": "Jim Hester [aut] (ORCID: <https://orcid.org/0000-0002-2739-7082>), Jennifer Bryan [aut, cre] (ORCID: <https://orcid.org/0000-0002-6983-2759>), Posit Software, PBC [cph, fnd] (ROR: <https://ror.org/03wc8by49>)",
-      "Maintainer": "Jennifer Bryan <jenny@posit.co>",
-      "Repository": "CRAN"
+      "Description": "Implementation of two p-value combination techniques (inverse normal and Fisher methods). A vignette is provided to explain how to perform a meta-analysis from two independent RNA-seq experiments.",
+      "License": "GPL",
+      "LazyLoad": "yes",
+      "NeedsCompilation": "no",
+      "Repository": "CRAN",
+      "Author": "Guillemette Marot [aut], Andrea Rau [aut], Florence Jaffrezic [aut], Samuel Blanck [ctb, cre]",
+      "Maintainer": "Samuel Blanck <samuel.blanck@univ-lille.fr>",
+      "Encoding": "UTF-8"
     },
     "renv": {
       "Package": "renv",

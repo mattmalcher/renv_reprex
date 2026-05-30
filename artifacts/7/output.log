@@ -250,12 +250,12 @@ The following package(s) will be installed:
 These packages will be installed into "/project/renv/library/linux-ubuntu-noble/R-4.4/x86_64-pc-linux-gnu".
 
 # Downloading packages -------------------------------------------------------
-[?25l  (0/1) Downloading: metaRNASeq                                                                                                                                 [32m✔[0m metaRNASeq 1.0.8                         [1.3 MB in 0.62s]
-                                                                                Successfully downloaded 1 package in 0.75 seconds.
+[?25l  (0/1) Downloading: metaRNASeq                                                                                                                                 [32m✔[0m metaRNASeq 1.0.8                         [1.3 MB in 0.63s]
+                                                                                Successfully downloaded 1 package in 0.74 seconds.
 
 # Installing packages --------------------------------------------------------
                                                                                 [32m✔[0m metaRNASeq 1.0.8                         [installed binary]
-Successfully installed 1 package in 0.18 seconds.
+Successfully installed 1 package in 0.13 seconds.
 [?25h
 > cat("\nInstall result:", result, "\n")
 
@@ -376,7 +376,11 @@ In system2("curl", args, stdout = TRUE, stderr = FALSE) :
 - The project is out-of-sync -- use `renv::status()` for details.
 - The project is out-of-sync -- use `renv::status()` for details.
 
+> `%||%` <- function(x, y) if (is.null(x)) y else x
+
 > scenario <- Sys.getenv("SCENARIO", "unknown")
+
+> target <- Sys.getenv("PACKAGE", "")
 
 > out_dir <- file.path("/artifacts", scenario)
 
@@ -385,8 +389,12 @@ In system2("curl", args, stdout = TRUE, stderr = FALSE) :
 > cat("=== 30_snapshot ===\n")
 === 30_snapshot ===
 
-> cat("Scenario:", scenario, "\n\n")
+> cat("Scenario:", scenario, "\n")
 Scenario: 7 
+
+> cat("Target package:", if (nzchar(target)) target else "(none)", 
++     "\n\n")
+Target package: metaRNASeq 
 
 
 > library(renv)
@@ -433,43 +441,75 @@ Running renv::dependencies() to capture dependency list...
 + }
 Wrote discovered-dependencies.csv
 
-> cat("BiocManager in deps:", biocmanager_found, "\n")
-BiocManager in deps: FALSE 
+> cat("BiocManager in discovered deps:", biocmanager_found, 
++     "\n")
+BiocManager in discovered deps: FALSE 
 
-> cat("BiocVersion in deps:", biocversion_found, "\n\n")
-BiocVersion in deps: FALSE 
+> cat("BiocVersion in discovered deps:", biocversion_found, 
++     "\n\n")
+BiocVersion in discovered deps: FALSE 
 
 
 > cat("Running renv::snapshot()...\n")
 Running renv::snapshot()...
 
-> snap_result <- tryCatch({
-+     renv::snapshot(prompt = FALSE)
-+     "success"
-+ }, warning = function(w) {
+> snap_warnings <- character()
+
+> snap_error <- NULL
+
+> withCallingHandlers(tryCatch(renv::snapshot(prompt = FALSE), 
++     error = function(e) {
++         snap_error <<- conditionMessage(e)
++         cat("ERROR:", conditionMessage(e), "\n")
++     }), warning = function(w) {
++     snap_warnings <<- c(snap_warnings, conditionMessage(w))
 +     cat("WARNING:", conditionMessage(w), "\n")
-+     "warning"
-+ }, error = function(e) {
-+     cat("ERROR:", conditionMessage(e), "\n")
-+     paste0("error: ", conditionMessage(e))
++     invokeRestart("muffleWarning")
 + })
 ERROR: invalid version specification ‘unknown version: Bioconductor version cannot be validated; no internet connection?
     See #troubleshooting section in vignette’ 
 
-> cat("Snapshot result:", snap_result, "\n\n")
-Snapshot result: error: invalid version specification ‘unknown version: Bioconductor version cannot be validated; no internet connection?
-    See #troubleshooting section in vignette’ 
+> recorded_packages <- character()
 
+> biocversion_in_lock <- FALSE
 
-> renv_lock_written <- file.exists("renv.lock")
+> bioc_source_tagged <- FALSE
 
-> if (renv_lock_written) {
+> if (file.exists("renv.lock")) {
++     lock <- tryCatch(jsonlite::fromJSON("renv.lock", simplifyVector = FALSE), 
++         error = function(e) NULL)
++     if (!is.null(lock) && !is.null(lock$Packages)) {
++         recorded_packages <- names(lock$Packages)
++         biocversion_in_lock <- "BiocVersion" %in% recorded_packages
++         srcs <- vapply(lock$Packages, function(p) p$Source %||% 
++             "", character(1))
++         bioc_source_tagged <- any(srcs == "Bioconductor")
++     }
 +     file.copy("renv.lock", file.path(out_dir, "renv.lock"), overwrite = TRUE)
-+     cat("renv.lock written.\n")
-+ } else {
-+     cat("No renv.lock written.\n")
 + }
-renv.lock written.
+[1] TRUE
+
+> target_recorded <- nzchar(target) && target %in% recorded_packages
+
+> cat("\n--- lockfile assessment ---\n")
+
+--- lockfile assessment ---
+
+> cat("Recorded packages:", if (length(recorded_packages)) paste(recorded_packages, 
++     collapse = ", ") else "(none)", "\n")
+Recorded packages: renv 
+
+> cat("Target recorded:", if (nzchar(target)) target_recorded else NA, 
++     "\n")
+Target recorded: FALSE 
+
+> cat("BiocVersion in lock:", biocversion_in_lock, "\n")
+BiocVersion in lock: FALSE 
+
+> cat("A package tagged Source=Bioconductor:", bioc_source_tagged, 
++     "\n\n")
+A package tagged Source=Bioconductor: FALSE 
+
 
 > if (file.exists("renv/settings.json")) {
 +     file.copy("renv/settings.json", file.path(out_dir, "renv-settings.json"), 
@@ -477,38 +517,43 @@ renv.lock written.
 + }
 [1] TRUE
 
-> classify_snap_error <- function(result_str) {
-+     if (is.null(result_str) || result_str %in% c("success", "warning")) 
-+         return(NA)
-+     msg <- tolower(result_str)
-+     if (grepl("biocversion", msg)) 
-+         "BiocVersion dependency not available"
-+     else if (grepl("cannot be validated", msg)) 
-+         "Bioconductor version validation failed"
-+     else if (grepl("biocmanager", msg)) 
-+         "BiocManager invoked but failed"
-+     else if (grepl("no internet|connection", msg)) 
-+         "Network connection error"
-+     else if (grepl("timeout", msg)) 
-+         "Timeout"
-+     else sub("^error:\\s*", "", result_str)
-+ }
-
-> snap_status <- if (snap_result == "success") {
-+     "success"
-+ } else if (snap_result == "warning") {
-+     "warning"
-+ } else if (grepl("^error:", snap_result)) {
-+     "failure"
+> if (!is.null(snap_error)) {
++     snap_status <- "failure"
++ } else if (nzchar(target) && !target_recorded) {
++     snap_status <- "incomplete"
 + } else {
-+     snap_result
++     snap_status <- "success"
 + }
 
-> writeLines(toJSON(list(result = snap_result, biocmanager_discovered = biocmanager_found, 
+> classify_snap_error <- function(msg) {
++     if (is.null(msg)) 
++         return(NA)
++     m <- tolower(msg)
++     if (grepl("cannot be validated", m)) 
++         "Bioconductor version validation failed"
++     else if (grepl("biocversion", m)) 
++         "BiocVersion dependency not available"
++     else if (grepl("biocmanager", m)) 
++         "BiocManager invoked but failed"
++     else if (grepl("no internet|connection", m)) 
++         "Network connection error"
++     else if (grepl("timeout", m)) 
++         "Timeout"
++     else msg
++ }
+
+> cat("Snapshot status:", snap_status, "\n")
+Snapshot status: failure 
+
+> writeLines(toJSON(list(result = if (is.null(snap_error)) "ok" else paste0("error: ", 
++     snap_error), biocmanager_discovered = biocmanager_found, 
 +     biocversion_discovered = biocversion_found, snapshot_status = snap_status, 
-+     snapshot_error_classification = classify_snap_error(snap_result), 
-+     renv_lock_written = renv_lock_written), auto_unbox = TRUE, 
-+     pretty = TRUE, na = "null"), file.path(out_dir, "snapshot_result.json"))
++     snapshot_error_classification = classify_snap_error(snap_error), 
++     snapshot_warnings = snap_warnings, renv_lock_written = file.exists("renv.lock"), 
++     target_package = target, target_package_recorded = if (nzchar(target)) target_recorded else NA, 
++     biocversion_in_lock = biocversion_in_lock, bioc_source_tagged = bioc_source_tagged), 
++     auto_unbox = TRUE, pretty = TRUE, na = "null"), file.path(out_dir, 
++     "snapshot_result.json"))
 
 > cat("\nDone.\n")
 
@@ -569,14 +614,20 @@ Saved /project/renv/settings.json → renv-settings.json
 +         biocmanager_found <- isTRUE(snap$biocmanager_discovered)
 +     if (!biocversion_found && !is.null(snap$biocversion_discovered)) 
 +         biocversion_found <- isTRUE(snap$biocversion_discovered)
-+     biocviews_present <- scenario %in% c("4", "6", "7")
++     biocviews_present <- scenario %in% c("4", "6", "7", "8")
 +     snap_status <- snap$snapshot_status %||% "unknown"
 +     lock_written <- file.exists(file.path(out_dir, "renv.lock")) || 
 +         isTRUE(snap$renv_lock_written)
-+     result <- list(scenario = scenario, ppm_reachable = isTRUE(env$ppm_access), 
++     result <- list(scenario = scenario, operation = snap$operation %||% 
++         "renv::snapshot()", ppm_reachable = isTRUE(env$ppm_access), 
 +         bioconductor_reachable = isTRUE(env$bioc_access), biocviews_present = biocviews_present, 
 +         biocmanager_discovered = biocmanager_found, biocversion_discovered = biocversion_found, 
 +         snapshot_status = snap_status, snapshot_error_classification = snap$snapshot_error_classification %||% 
++             NA, snapshot_warnings = snap$snapshot_warnings %||% 
++             NA, target_package = snap$target_package %||% NA, 
++         target_package_recorded = snap$target_package_recorded %||% 
++             NA, biocversion_in_lock = snap$biocversion_in_lock %||% 
++             NA, bioc_source_tagged = snap$bioc_source_tagged %||% 
 +             NA, renv_lock_written = lock_written, notes = "")
 +     writeLines(jsonlite::toJSON(result, auto_unbox = TRUE, pretty = TRUE, 
 +         na = "null"), result_path)
@@ -599,6 +650,7 @@ Outcome:
 +     "\n")
 {
   "scenario": "7",
+  "operation": "renv::snapshot()",
   "ppm_reachable": true,
   "bioconductor_reachable": false,
   "biocviews_present": true,
@@ -606,6 +658,11 @@ Outcome:
   "biocversion_discovered": false,
   "snapshot_status": "failure",
   "snapshot_error_classification": "Bioconductor version validation failed",
+  "snapshot_warnings": [],
+  "target_package": "metaRNASeq",
+  "target_package_recorded": false,
+  "biocversion_in_lock": false,
+  "bioc_source_tagged": false,
   "renv_lock_written": true,
   "notes": ""
 } 

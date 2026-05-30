@@ -44,8 +44,9 @@ if (!file.exists(result_path) || !(scenario %in% c("1", "2", "3"))) {
   if (!biocversion_found && !is.null(snap$biocversion_discovered))
     biocversion_found <- isTRUE(snap$biocversion_discovered)
 
-  # Scenarios 4/6/7 use metaRNASeq (biocViews present); 5 uses glue (absent)
-  biocviews_present <- scenario %in% c("4", "6", "7")
+  # biocViews present at snapshot time: scenarios 4/6/7 (metaRNASeq, intact),
+  # 8 (project-as-package fixture). Scenario 5 strips it from the DESCRIPTION.
+  biocviews_present <- scenario %in% c("4", "6", "7", "8")
 
   snap_status  <- snap$snapshot_status %||% "unknown"
   lock_written <- file.exists(file.path(out_dir, "renv.lock")) ||
@@ -53,6 +54,7 @@ if (!file.exists(result_path) || !(scenario %in% c("1", "2", "3"))) {
 
   result <- list(
     scenario                      = scenario,
+    operation                     = snap$operation %||% "renv::snapshot()",
     ppm_reachable                 = isTRUE(env$ppm_access),
     bioconductor_reachable        = isTRUE(env$bioc_access),
     biocviews_present             = biocviews_present,
@@ -60,6 +62,11 @@ if (!file.exists(result_path) || !(scenario %in% c("1", "2", "3"))) {
     biocversion_discovered        = biocversion_found,
     snapshot_status               = snap_status,
     snapshot_error_classification = snap$snapshot_error_classification %||% NA,
+    snapshot_warnings             = snap$snapshot_warnings %||% NA,
+    target_package                = snap$target_package %||% NA,
+    target_package_recorded       = snap$target_package_recorded %||% NA,
+    biocversion_in_lock           = snap$biocversion_in_lock %||% NA,
+    bioc_source_tagged            = snap$bioc_source_tagged %||% NA,
     renv_lock_written             = lock_written,
     notes                         = ""
   )

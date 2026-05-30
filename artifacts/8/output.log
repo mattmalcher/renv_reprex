@@ -1,4 +1,4 @@
-[run_scenario 2] Running 00_env_diagnostics...
+[run_scenario 8] Running 00_env_diagnostics...
 
 > `%||%` <- function(x, y) if (is.null(x) || (length(x) == 
 +     1 && is.na(x))) y else x
@@ -13,7 +13,7 @@
 === 00_env_diagnostics ===
 
 > cat("Scenario:", scenario, "\n\n")
-Scenario: 2 
+Scenario: 8 
 
 
 > check_url_curl <- function(url, timeout_s = 10) {
@@ -49,7 +49,7 @@ Checking Bioconductor: https://bioconductor.org
 > bioc_status <- check_url_curl(bioc_url)
 
 > cat("Bioconductor status:", bioc_status, "\n\n")
-Bioconductor status: reachable (HTTP 200) 
+Bioconductor status: blocked: no HTTP response 
 
 
 > renv_ver <- tryCatch(as.character(packageVersion("renv")), 
@@ -77,7 +77,7 @@ renv version: 1.2.3
 PPM reachable: TRUE 
 
 > cat("Bioconductor reachable:", info$bioc_access, "\n")
-Bioconductor reachable: TRUE 
+Bioconductor reachable: FALSE 
 
 > sink(file.path(out_dir, "session-info.txt"))
 
@@ -93,33 +93,99 @@ Bioconductor reachable: TRUE
 Wrote env_diagnostics.json, session-info.txt
 
 Done.
-[run_scenario 2] Running 01_discover_deps...
+Warning message:
+In system2("curl", args, stdout = TRUE, stderr = FALSE) :
+  running command ''curl' -s -o /dev/null -w %{http_code} --connect-timeout 10 --max-time 10 https://bioconductor.org 2>/dev/null' had status 7 and error message 'Function not implemented'
+[run_scenario 8] Running 15_setup_pkg_project...
+
+> fixture <- Sys.getenv("FIXTURE", "cranlike-with-biocviews")
+
+> src <- file.path("/fixtures", fixture)
+
+> cat("=== 15_setup_pkg_project ===\n")
+=== 15_setup_pkg_project ===
+
+> cat("Fixture (used as the project package):", fixture, 
++     "\n\n")
+Fixture (used as the project package): cranlike-with-biocviews 
+
+
+> for (item in list.files(src, full.names = TRUE)) {
++     file.copy(item, ".", recursive = TRUE, overwrite = TRUE)
++ }
+
+> cat("Project now contains:\n")
+Project now contains:
+
+> print(list.files(".", recursive = TRUE))
+[1] "DESCRIPTION" "NAMESPACE"   "R/dummy.R"  
+
+> cat("\n--- project DESCRIPTION ---\n")
+
+--- project DESCRIPTION ---
+
+> cat(paste(readLines("DESCRIPTION"), collapse = "\n"), 
++     "\n\n")
+Package: withbiocviews
+Type: Package
+Title: A Minimal CRAN-Like Package With biocViews
+Version: 0.1.0
+Authors@R: person("Test", "Author", email = "test@example.com", role = c("aut", "cre"))
+Description: A minimal package for testing renv dependency discovery.
+    Contains a non-empty biocViews field, which causes renv to inject
+    BiocManager and BiocVersion as implicit dependencies.
+Depends: R (>= 3.5.0)
+Imports: stats
+biocViews: Software
+License: MIT
+Encoding: UTF-8 
+
+
+> library(renv)
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+
+> cat("renv::init(bare = TRUE)  # do not auto-install deps; isolate the failure to snapshot\n\n")
+renv::init(bare = TRUE)  # do not auto-install deps; isolate the failure to snapshot
+
+
+> renv::init(bare = TRUE, restart = FALSE)
+- Using 'explicit' snapshot type. Please see `?renv::snapshot` for more details.
+
+- The project is out-of-sync -- use `renv::status()` for details.
+
+> cat("\nDone.\n")
+
+Done.
+[run_scenario 8] Running 16_install_project_deps...
+- The project is out-of-sync -- use `renv::status()` for details.
 
 > `%||%` <- function(x, y) if (is.null(x)) y else x
 
-> scenario <- Sys.getenv("SCENARIO", "unknown")
-
-> fixture <- Sys.getenv("FIXTURE", "cranlike-with-biocviews")
+> scenario <- Sys.getenv("SCENARIO", "8")
 
 > out_dir <- file.path("/artifacts", scenario)
 
 > dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
-> cat("=== 01_discover_deps ===\n")
-=== 01_discover_deps ===
+> cat("=== 16_install_project_deps ===\n")
+=== 16_install_project_deps ===
 
-> cat("Scenario:", scenario, "\n")
-Scenario: 2 
-
-> cat("Fixture:", fixture, "\n\n")
-Fixture: cranlike-with-biocviews 
-
-
-> fixture_desc <- file.path("/fixtures", fixture, "DESCRIPTION")
-
-> cat("Running renv::dependencies() on:", fixture_desc, 
-+     "\n\n")
-Running renv::dependencies() on: /fixtures/cranlike-with-biocviews/DESCRIPTION 
+> cat("Scenario:", scenario, "\n\n")
+Scenario: 8 
 
 
 > library(renv)
@@ -141,51 +207,24 @@ The following objects are masked from ‘package:base’:
 
 > library(jsonlite)
 
-> desc_lines <- readLines(fixture_desc)
+> cat("Running renv::dependencies() on the project...\n")
+Running renv::dependencies() on the project...
 
-> biocviews_line <- grep("^biocViews", desc_lines, value = TRUE, 
-+     ignore.case = TRUE)
-
-> biocviews_value <- if (length(biocviews_line) > 0) trimws(sub("^biocViews:\\s*", 
-+     "", biocviews_line[[1]], ignore.case = TRUE)) else ""
-
-> biocviews_present <- nzchar(biocviews_value)
-
-> cat("biocViews field:", if (biocviews_present) biocviews_value else "(absent)", 
-+     "\n\n")
-biocViews field: Software 
-
-
-> deps <- tryCatch(renv::dependencies(fixture_desc, 
-+     progress = FALSE, errors = "ignored"), error = function(e) {
-+     cat("ERROR from renv::dependencies():", conditionMessage(e), 
-+         "\n")
+> deps <- tryCatch(renv::dependencies(progress = FALSE, 
++     errors = "ignored"), error = function(e) {
++     cat("WARNING:", conditionMessage(e), "\n")
 +     NULL
 + })
 
 > if (!is.null(deps) && nrow(deps) > 0) {
-+     cat("Discovered dependencies:\n")
-+     print(deps)
 +     write.csv(deps, file.path(out_dir, "discovered-dependencies.csv"), 
 +         row.names = FALSE)
-+     cat("\nWrote discovered-dependencies.csv\n")
-+ } else {
-+     cat("No dependencies discovered.\n")
-+     write.csv(data.frame(Source = character(), Package = character(), 
-+         Require = character(), Version = character(), Dev = logical()), 
-+         file.path(out_dir, "discovered-dependencies.csv"), row.names = FALSE)
++     print(deps)
 + }
-Discovered dependencies:
-          Type                                        Source     Package
-1      Imports /fixtures/cranlike-with-biocviews/DESCRIPTION       stats
-2 Bioconductor /fixtures/cranlike-with-biocviews/DESCRIPTION BiocManager
-3 Bioconductor /fixtures/cranlike-with-biocviews/DESCRIPTION BiocVersion
-  Require Version   Dev
-1                 FALSE
-2                 FALSE
-3                 FALSE
-
-Wrote discovered-dependencies.csv
+          Type               Source     Package Require Version   Dev
+1      Imports /project/DESCRIPTION       stats                 FALSE
+2 Bioconductor /project/DESCRIPTION BiocManager                 FALSE
+3 Bioconductor /project/DESCRIPTION BiocVersion                 FALSE
 
 > biocmanager_found <- !is.null(deps) && "BiocManager" %in% 
 +     deps$Package
@@ -193,39 +232,93 @@ Wrote discovered-dependencies.csv
 > biocversion_found <- !is.null(deps) && "BiocVersion" %in% 
 +     deps$Package
 
-> bioc_type_found <- !is.null(deps) && any(grepl("Bioconductor", 
-+     deps$Type %||% ""), na.rm = TRUE)
-
 > cat("\nBiocManager discovered:", biocmanager_found, 
 +     "\n")
 
 BiocManager discovered: TRUE 
 
 > cat("BiocVersion discovered:", biocversion_found, 
-+     "\n")
++     "\n\n")
 BiocVersion discovered: TRUE 
 
-> cat("Bioconductor dependency type present:", bioc_type_found, 
+
+> cat("Running renv::install() to install the project's dependencies...\n")
+Running renv::install() to install the project's dependencies...
+
+> install_warnings <- character()
+
+> install_error <- NULL
+
+> withCallingHandlers(tryCatch(renv::install(), error = function(e) {
++     install_error <<- conditionMessage(e)
++     cat("ERROR:", conditionMessage(e), "\n")
++ }), warning = function(w) {
++     install_warnings <<- c(install_warnings, conditionMessage(w))
++     cat("WARNING:", conditionMessage(w), "\n")
++     invokeRestart("muffleWarning")
++ })
+- Querying repositories for available source packages ... Done!
+The following package(s) will be installed:
+- BiocManager [1.30.27]
+- BiocVersion [*]
+These packages will be installed into "~/.cache/R/renv/library/project-20bde257/linux-ubuntu-noble/R-4.4/x86_64-pc-linux-gnu".
+
+# Downloading packages -------------------------------------------------------
+[?25l  (0/1) Downloading: BiocManager                                                                                                                                [32m✔[0m BiocManager 1.30.27                      [666 kB in 0.65s]
+                                                                                [31m✖[0m BiocVersion                             
+Successfully downloaded 1 package in 0.77 seconds.
+
+# Installing packages --------------------------------------------------------
+                                                                                [32m✔[0m BiocManager 1.30.27                      [installed binary]
+Successfully installed 1 package in 0.16 seconds.
+
+The following package(s) were not installed successfully:
+- [BiocVersion]: failed to download
+You may need to manually download and install these packages.
+
+[?25hERROR: failed to install "BiocVersion" (package 'BiocVersion' is not available) 
+
+> biocversion_installed <- requireNamespace("BiocVersion", 
++     quietly = TRUE)
+
+> cat("\nBiocVersion actually installed:", biocversion_installed, 
 +     "\n")
-Bioconductor dependency type present: TRUE 
 
-> sink(file.path(out_dir, "session-info.txt"))
+BiocVersion actually installed: FALSE 
 
-> result <- list(scenario = scenario, ppm_reachable = TRUE, 
-+     bioconductor_reachable = NA, biocviews_present = biocviews_present, 
-+     biocmanager_discovered = biocmanager_found, biocversion_discovered = biocversion_found, 
-+     snapshot_status = "not_run", snapshot_error_classification = NA, 
-+     renv_lock_written = FALSE, notes = paste0("Dependency discovery only. Fixture: ", 
-+         fixture, ". biocViews value: '", biocviews_value, "'."))
+> status <- if (!is.null(install_error) || !biocversion_installed) "failure" else "success"
 
-> writeLines(toJSON(result, auto_unbox = TRUE, pretty = TRUE, 
-+     na = "null"), file.path(out_dir, "result.json"))
+> cat("Install status:", status, "\n")
+Install status: failure 
 
-> cat("Wrote result.json\n\nDone.\n")
-Wrote result.json
+> classify <- function(msg, warns) {
++     hay <- tolower(paste(c(msg, warns), collapse = " "))
++     if (grepl("biocversion", hay)) 
++         "BiocVersion dependency not available"
++     else if (grepl("cannot be validated", hay)) 
++         "Bioconductor version validation failed"
++     else if (grepl("failed to download|not available", hay)) 
++         "Dependency download failed"
++     else if (nzchar(hay)) 
++         hay
++     else NA
++ }
+
+> writeLines(toJSON(list(operation = "renv::install()", 
++     result = if (is.null(install_error)) "ok (but dependency missing)" else paste0("error: ", 
++         install_error), biocmanager_discovered = biocmanager_found, 
++     biocversion_discovered = biocversion_found, snapshot_status = status, 
++     snapshot_error_classification = classify(install_error, install_warnings), 
++     snapshot_warnings = install_warnings, renv_lock_written = file.exists("renv.lock"), 
++     target_package = "BiocVersion", target_package_recorded = biocversion_installed, 
++     biocversion_in_lock = FALSE, bioc_source_tagged = FALSE), 
++     auto_unbox = TRUE, pretty = TRUE, na = "null"), file.path(out_dir, 
++     "snapshot_result.json"))
+
+> cat("\nDone.\n")
 
 Done.
-[run_scenario 2] Running 70_collect_artifacts (no-init-file)...
+[run_scenario 8] Running 70_collect_artifacts (no-init-file)...
 
 > `%||%` <- function(x, y) if (is.null(x) || (length(x) == 
 +     1 && is.na(x))) y else x
@@ -238,7 +331,7 @@ Done.
 === 70_collect_artifacts ===
 
 > cat("Scenario:", scenario, "\n\n")
-Scenario: 2 
+Scenario: 8 
 
 
 > read_json_safe <- function(path) {
@@ -257,6 +350,7 @@ Scenario: 2
 +         cat("Saved", src, "→", dest_name, "\n")
 +     }
 + }
+Saved /project/renv/settings.json → renv-settings.json 
 
 > result_path <- file.path(out_dir, "result.json")
 
@@ -305,7 +399,7 @@ Scenario: 2
 + } else {
 +     cat("result.json already present — skipping\n")
 + }
-result.json already present — skipping
+Wrote result.json
 
 > cat("\nOutcome:\n")
 
@@ -314,19 +408,25 @@ Outcome:
 > cat(paste(readLines(result_path), collapse = "\n"), 
 +     "\n")
 {
-  "scenario": "2",
+  "scenario": "8",
+  "operation": "renv::install()",
   "ppm_reachable": true,
-  "bioconductor_reachable": null,
+  "bioconductor_reachable": false,
   "biocviews_present": true,
   "biocmanager_discovered": true,
   "biocversion_discovered": true,
-  "snapshot_status": "not_run",
-  "snapshot_error_classification": null,
+  "snapshot_status": "failure",
+  "snapshot_error_classification": "BiocVersion dependency not available",
+  "snapshot_warnings": [],
+  "target_package": "BiocVersion",
+  "target_package_recorded": false,
+  "biocversion_in_lock": false,
+  "bioc_source_tagged": false,
   "renv_lock_written": false,
-  "notes": "Dependency discovery only. Fixture: cranlike-with-biocviews. biocViews value: 'Software'."
+  "notes": ""
 } 
 
 > cat("\nDone.\n")
 
 Done.
-[run_scenario 2] Done.
+[run_scenario 8] Done.

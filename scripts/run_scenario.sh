@@ -80,7 +80,10 @@ case "$SCENARIO" in
     ;;
 
   4)
-    # Snapshot failure: metaRNASeq (biocViews present), Bioc blocked.
+    # Path B — snapshot failure: project depends on metaRNASeq (a CRAN/PPM package
+    # whose DESCRIPTION carries biocViews). BiocVersion is NOT discovered as a
+    # dependency; snapshot fails when renv infers Source="Bioconductor" from the
+    # installed DESCRIPTION and tries to validate the Bioconductor version.
     # Two-phase: install via renv with open network; snapshot with Bioc blocked.
     if [ "$PHASE" = "install" ]; then
       setup_rprofile
@@ -88,6 +91,7 @@ case "$SCENARIO" in
       run_r /scripts/10_init_project.R
       run_r /scripts/20_install_pkg.R
     elif [ "$PHASE" = "snapshot" ]; then
+      export PACKAGE=metaRNASeq
       run_r /scripts/00_env_diagnostics.R
       run_r /scripts/30_snapshot.R || true
       run_r_noenv /scripts/70_collect_artifacts.R
@@ -95,15 +99,22 @@ case "$SCENARIO" in
     ;;
 
   5)
-    # Snapshot control: glue (no biocViews), Bioc blocked throughout — should succeed.
-    # Single-phase: renv::install(glue) works fine even with Bioc blocked (no biocViews).
-    setup_rprofile
-    run_r /scripts/00_env_diagnostics.R
-    run_r /scripts/10_init_project.R
-    export PACKAGE=glue
-    run_r /scripts/20_install_pkg.R
-    run_r /scripts/30_snapshot.R || true
-    run_r_noenv /scripts/70_collect_artifacts.R
+    # Minimal-pair control for scenario 4: identical package (metaRNASeq), source
+    # (PPM/RSPM), and two-phase blocked network — the ONLY difference is that the
+    # biocViews field is stripped from the installed DESCRIPTION before snapshot.
+    # With biocViews gone, snapshot succeeds and records metaRNASeq.
+    if [ "$PHASE" = "install" ]; then
+      setup_rprofile
+      export PACKAGE=metaRNASeq
+      run_r /scripts/10_init_project.R
+      run_r /scripts/20_install_pkg.R
+    elif [ "$PHASE" = "snapshot" ]; then
+      export PACKAGE=metaRNASeq
+      run_r /scripts/00_env_diagnostics.R
+      run_r /scripts/40_strip_biocviews.R
+      run_r /scripts/30_snapshot.R || true
+      run_r_noenv /scripts/70_collect_artifacts.R
+    fi
     ;;
 
   6)
@@ -115,6 +126,7 @@ case "$SCENARIO" in
       run_r /scripts/10_init_project.R
       run_r /scripts/20_install_pkg.R
     elif [ "$PHASE" = "snapshot" ]; then
+      export PACKAGE=metaRNASeq
       run_r /scripts/00_env_diagnostics.R
       run_r /scripts/30_snapshot.R || true
       run_r_noenv /scripts/70_collect_artifacts.R
@@ -130,10 +142,24 @@ case "$SCENARIO" in
       run_r /scripts/10_init_project.R
       run_r /scripts/20_install_pkg.R
     elif [ "$PHASE" = "snapshot" ]; then
+      export PACKAGE=metaRNASeq
       run_r /scripts/00_env_diagnostics.R
       run_r /scripts/30_snapshot.R || true
       run_r_noenv /scripts/70_collect_artifacts.R
     fi
+    ;;
+
+  8)
+    # Path A — the project ITSELF is a package with a non-empty biocViews field.
+    # renv::dependencies() genuinely discovers BiocManager + BiocVersion as implicit
+    # dependencies; installing the project's declared dependencies then FAILS because
+    # BiocVersion (Bioconductor-only) cannot be downloaded with Bioconductor blocked.
+    # Single-phase (no external package install needed beforehand).
+    run_r /scripts/00_env_diagnostics.R
+    export FIXTURE=cranlike-with-biocviews
+    run_r /scripts/15_setup_pkg_project.R
+    run_r /scripts/16_install_project_deps.R || true
+    run_r_noenv /scripts/70_collect_artifacts.R
     ;;
 
 

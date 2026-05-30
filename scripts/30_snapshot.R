@@ -1,9 +1,13 @@
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
 scenario <- Sys.getenv("SCENARIO", "unknown")
+target   <- Sys.getenv("PACKAGE", "")          # package whose presence in the lock = success
 out_dir  <- file.path("/artifacts", scenario)
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 cat("=== 30_snapshot ===\n")
-cat("Scenario:", scenario, "\n\n")
+cat("Scenario:", scenario, "\n")
+cat("Target package:", if (nzchar(target)) target else "(none)", "\n\n")
 
 library(renv)
 library(jsonlite)
@@ -34,66 +38,101 @@ if (!is.null(deps) && nrow(deps) > 0) {
   biocversion_found <- FALSE
 }
 
-cat("BiocManager in deps:", biocmanager_found, "\n")
-cat("BiocVersion in deps:", biocversion_found, "\n\n")
+cat("BiocManager in discovered deps:", biocmanager_found, "\n")
+cat("BiocVersion in discovered deps:", biocversion_found, "\n\n")
 
-# Run snapshot
+# Run snapshot.
+#
+# IMPORTANT: renv::snapshot() emits warnings as part of normal operation, so we
+# must NOT let the first warning unwind the call (a tryCatch(warning=) handler
+# would do exactly that and make a merely-warned snapshot look identical to an
+# aborted one). Instead we capture warnings with withCallingHandlers + muffle,
+# let snapshot run to completion, and judge success by what actually lands in
+# the lockfile — not by whether a warning was raised.
 cat("Running renv::snapshot()...\n")
-snap_result <- tryCatch({
-  renv::snapshot(prompt = FALSE)
-  "success"
-}, warning = function(w) {
-  cat("WARNING:", conditionMessage(w), "\n")
-  "warning"
-}, error = function(e) {
-  cat("ERROR:", conditionMessage(e), "\n")
-  paste0("error: ", conditionMessage(e))
-})
+snap_warnings <- character()
+snap_error    <- NULL
+withCallingHandlers(
+  tryCatch(
+    renv::snapshot(prompt = FALSE),
+    error = function(e) {
+      snap_error <<- conditionMessage(e)
+      cat("ERROR:", conditionMessage(e), "\n")
+    }
+  ),
+  warning = function(w) {
+    snap_warnings <<- c(snap_warnings, conditionMessage(w))
+    cat("WARNING:", conditionMessage(w), "\n")
+    invokeRestart("muffleWarning")
+  }
+)
 
-cat("Snapshot result:", snap_result, "\n\n")
-
-renv_lock_written <- file.exists("renv.lock")
-if (renv_lock_written) {
+# Inspect the resulting lockfile: the real test of success is whether the
+# project's target package was actually recorded.
+recorded_packages   <- character()
+biocversion_in_lock <- FALSE
+bioc_source_tagged  <- FALSE      # any record with Source == "Bioconductor"?
+if (file.exists("renv.lock")) {
+  lock <- tryCatch(jsonlite::fromJSON("renv.lock", simplifyVector = FALSE),
+                   error = function(e) NULL)
+  if (!is.null(lock) && !is.null(lock$Packages)) {
+    recorded_packages   <- names(lock$Packages)
+    biocversion_in_lock <- "BiocVersion" %in% recorded_packages
+    srcs <- vapply(lock$Packages, function(p) p$Source %||% "", character(1))
+    bioc_source_tagged  <- any(srcs == "Bioconductor")
+  }
   file.copy("renv.lock", file.path(out_dir, "renv.lock"), overwrite = TRUE)
-  cat("renv.lock written.\n")
-} else {
-  cat("No renv.lock written.\n")
 }
+target_recorded <- nzchar(target) && target %in% recorded_packages
+
+cat("\n--- lockfile assessment ---\n")
+cat("Recorded packages:", if (length(recorded_packages)) paste(recorded_packages, collapse = ", ") else "(none)", "\n")
+cat("Target recorded:", if (nzchar(target)) target_recorded else NA, "\n")
+cat("BiocVersion in lock:", biocversion_in_lock, "\n")
+cat("A package tagged Source=Bioconductor:", bioc_source_tagged, "\n\n")
 
 if (file.exists("renv/settings.json")) {
   file.copy("renv/settings.json", file.path(out_dir, "renv-settings.json"), overwrite = TRUE)
 }
 
-# Classify snapshot error
-classify_snap_error <- function(result_str) {
-  if (is.null(result_str) || result_str %in% c("success", "warning")) return(NA_character_)
-  msg <- tolower(result_str)
-  if (grepl("biocversion", msg))              "BiocVersion dependency not available"
-  else if (grepl("cannot be validated", msg)) "Bioconductor version validation failed"
-  else if (grepl("biocmanager", msg))         "BiocManager invoked but failed"
-  else if (grepl("no internet|connection", msg)) "Network connection error"
-  else if (grepl("timeout", msg))             "Timeout"
-  else sub("^error:\\s*", "", result_str)
+# Three-way status, judged on the error + the lockfile contents:
+#   failure    — snapshot raised an error
+#   incomplete — no error, but the target package was NOT recorded
+#   success    — target package recorded (or no target package expected)
+if (!is.null(snap_error)) {
+  snap_status <- "failure"
+} else if (nzchar(target) && !target_recorded) {
+  snap_status <- "incomplete"
+} else {
+  snap_status <- "success"
 }
 
-snap_status <- if (snap_result == "success") {
-  "success"
-} else if (snap_result == "warning") {
-  "warning"
-} else if (grepl("^error:", snap_result)) {
-  "failure"
-} else {
-  snap_result
+classify_snap_error <- function(msg) {
+  if (is.null(msg)) return(NA_character_)
+  m <- tolower(msg)
+  if (grepl("cannot be validated", m))         "Bioconductor version validation failed"
+  else if (grepl("biocversion", m))            "BiocVersion dependency not available"
+  else if (grepl("biocmanager", m))            "BiocManager invoked but failed"
+  else if (grepl("no internet|connection", m)) "Network connection error"
+  else if (grepl("timeout", m))                "Timeout"
+  else msg
 }
+
+cat("Snapshot status:", snap_status, "\n")
 
 writeLines(
   toJSON(list(
-    result                        = snap_result,
+    result                        = if (is.null(snap_error)) "ok" else paste0("error: ", snap_error),
     biocmanager_discovered        = biocmanager_found,
     biocversion_discovered        = biocversion_found,
     snapshot_status               = snap_status,
-    snapshot_error_classification = classify_snap_error(snap_result),
-    renv_lock_written             = renv_lock_written
+    snapshot_error_classification = classify_snap_error(snap_error),
+    snapshot_warnings             = snap_warnings,
+    renv_lock_written             = file.exists("renv.lock"),
+    target_package                = target,
+    target_package_recorded       = if (nzchar(target)) target_recorded else NA,
+    biocversion_in_lock           = biocversion_in_lock,
+    bioc_source_tagged            = bioc_source_tagged
   ), auto_unbox = TRUE, pretty = TRUE, na = "null"),
   file.path(out_dir, "snapshot_result.json")
 )

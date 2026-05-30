@@ -1,10 +1,20 @@
 # renv biocViews → BiocVersion dependency repro
 
-This repo demonstrates that renv treats a non-empty `biocViews` field in a DESCRIPTION
-file as a Bioconductor signal and injects `BiocManager` + `BiocVersion` (Bioconductor 
-only package!) as implicit dependencies. This can make `renv::snapshot()` fail in 
-CRAN/PPM-only enterprise environments where Bioconductor is unreachable, even when the 
+This repo demonstrates that renv treats a **non-empty `biocViews` field** in a DESCRIPTION
+file as a Bioconductor signal, even on a package installed from CRAN/PPM. This breaks renv
+in CRAN/PPM-only enterprise environments where Bioconductor is unreachable — even when the
 user has not explicitly depended on any Bioconductor package.
+
+A non-empty `biocViews` field bites in **two independent ways**:
+
+- **Path A — dependency discovery / `install()` / `restore()`.** When a project *is* a
+  package whose DESCRIPTION has `biocViews`, renv injects `BiocManager` + `BiocVersion`
+  as implicit dependencies. Installing the project's declared dependencies then fails,
+  because `BiocVersion` is Bioconductor-only and cannot be downloaded.
+- **Path B — `snapshot()`.** When a project merely *depends on* an installed CRAN/PPM
+  package whose DESCRIPTION has `biocViews`, renv infers `Source = "Bioconductor"` for it
+  (even with `Repository: RSPM`) and `renv::snapshot()` fails resolving the Bioconductor
+  version over the network. Here `BiocVersion` is never even discovered as a dependency.
 
 **Environment used in this run**
 
@@ -20,16 +30,16 @@ user has not explicitly depended on any Bioconductor package.
 ./run_matrix.sh
 ```
 
-Builds a Docker image (once) and runs all 7 scenarios. Artifacts land in `artifacts/`.
+Builds a Docker image (once) and runs all 8 scenarios. Artifacts land in `artifacts/`.
 
 ```
 artifacts/
   summary.json          # machine-readable results for all scenarios
-  1/ … 7/               # per-scenario logs and results
+  1/ … 8/               # per-scenario logs and results
 ```
 
 ```bash
-./run_matrix.sh 2 4 5    # run specific scenarios
+./run_matrix.sh 4 5 8    # run specific scenarios
 ./run_matrix.sh --build-only
 ./reset.sh               # wipe artifacts for a clean re-run
 ./reset.sh --rmi         # also remove the Docker image
@@ -40,13 +50,50 @@ artifacts/
 
 ---
 
-## The crux
+## Scenario matrix
 
-In `renv/R/dependencies.R`, `renv_dependencies_discover_description()` (line 575):
+| # | Description | Operation | Network | biocViews | Result |
+|---|-------------|-----------|---------|-----------|--------|
+| **1** | Discovery — fixture without biocViews | `dependencies()` | open | absent | no injection |
+| **2** | Discovery — fixture with biocViews | `dependencies()` | open | present | injects BiocManager + **BiocVersion** |
+| **3** | Real CRAN package `recipes` carries biocViews | inspect | open | present | metadata only |
+| **4** | **Path B**: depends on `metaRNASeq` (biocViews) | `snapshot()` | Bioc blocked | present | **fails** |
+| **5** | **Control**: `metaRNASeq`, biocViews **stripped** | `snapshot()` | Bioc blocked | stripped | **succeeds** |
+| **6** | Workaround: `bioconductor.version("3.20")` | `snapshot()` | Bioc blocked | present | **fails** |
+| **7** | Workaround: `BioCsoft` → PPM Bioconductor mirror | `snapshot()` | Bioc blocked | present | **fails** |
+| **8** | **Path A**: project *is* a package with biocViews | `install()` | Bioc blocked | present | **fails** |
+
+Scenarios 4–7 use a two-phase Docker approach: the package is installed via
+`renv::install()` with an open network (so renv records CRAN/PPM as the source), then the
+operation under test runs in a second container with Bioconductor blocked.
+
+---
+
+## How success is measured
+
+`renv::snapshot()` and `renv::install()` emit warnings as part of normal operation, so the
+harness does **not** wrap them in a `tryCatch(warning=)` (that would let the first warning
+abort the call and make a merely-warned run look like a failure — or vice-versa). Instead it
+uses `withCallingHandlers` to capture warnings without unwinding, lets the call run to
+completion, and then judges the outcome on **what actually lands in the lockfile / library**:
+
+- **failure** — the operation raised an error.
+- **incomplete** — no error, but the project's target package was *not* recorded/installed.
+- **success** — the target package was recorded (snapshot) or installed (install).
+
+See `scripts/30_snapshot.R` and `scripts/16_install_project_deps.R`.
+
+---
+
+## 1. The two mechanisms
+
+Both paths key off the same one-line `biocViews` test but live in different renv functions.
+The fetched source is in `renv-source/R/` (see `renv-source/README.md` for annotated lines).
+
+### Path A — dependency injection (`dependencies.R:602`)
 
 ```r
 # if this is a bioconductor package, add their implicit dependencies
-# guard against packages which have an empty biocViews field
 # https://github.com/rstudio/renv/issues/2149
 if (nzchar(dcf[["biocViews"]] %||% "")) {
   data[[length(data) + 1L]] <- renv_dependencies_list(
@@ -57,55 +104,28 @@ if (nzchar(dcf[["biocViews"]] %||% "")) {
 }
 ```
 
-Any non-empty `biocViews` value — including on a CRAN-installed package — causes renv
-to add `BiocManager` (available from CRAN/PPM) and `BiocVersion` (Bioconductor-only)
-as implicit dependencies. In a CRAN-only environment, `BiocVersion` cannot be resolved
-and `renv::snapshot()` fails.
+`renv::dependencies()` over a DESCRIPTION with `biocViews` adds `BiocManager` + `BiocVersion`
+as implicit dependencies. This drives **scenarios 1, 2 and 8**.
 
-See `renv-source/R/dependencies.R` lines 599–608 for the exact source.
+### Path B — snapshot source inference (`snapshot.R:940`)
 
----
-
-## Call stack
-
-```
-renv::snapshot()
-  └─ discovers installed packages, scans each DESCRIPTION
-       └─ renv_dependencies_discover_description()        [dependencies.R:575]
-            └─ biocViews non-empty → injects BiocManager + BiocVersion
-  └─ resolves Bioconductor version (needed to assign BiocVersion to a repo)
-       └─ renv_bioconductor_version()                     [bioconductor.R:108]
-            └─ settings$bioconductor.version() → NULL (not set)
-            └─ BiocVersion not installed
-            └─ renv_bioconductor_init() → installs BiocManager
-            └─ BiocManager$version()
-                 └─ HTTP GET bioconductor.org/config.yaml
-                      └─ FAIL: connection refused (host blocked)
-                         └─ "Bioconductor version cannot be validated; no internet connection?"
+```r
+# packages from Bioconductor are normally tagged with a 'biocViews' entry;
+# use that to infer a Bioconductor source
+if (nzchar(dcf[["biocViews"]] %||% ""))
+  return(list(Source = "Bioconductor"))
 ```
 
-The `bioconductor.version` project setting (scenario 6 workaround) short-circuits this
-by returning early at `settings$bioconductor.version(project = project)`.
-
-See `renv-source/R/bioconductor.R` lines 108–145 for the version resolution path.
-
----
-
-## Scenario matrix
-
-| # | Description | Network | biocViews | Snapshot |
-|---|-------------|---------|-----------|----------|
-| **1** | Dependency discovery — no biocViews | open | absent | not run |
-| **2** | Dependency discovery — with biocViews | open | present | not run |
-| **3** | Real-world: `recipes` from CRAN/PPM | open | present | not run |
-| **4** | Snapshot failure: `metaRNASeq`, Bioc blocked | Bioc blocked | present | **fails** |
-| **5** | Snapshot control: `glue` (no biocViews), Bioc blocked | Bioc blocked | absent | **succeeds** |
-| **6** | Workaround: `renv::settings$bioconductor.version("3.20")` | Bioc blocked | present | **warning** (partial) |
-| **7** | Workaround: BiocVersion via PPM Bioconductor mirror | Bioc blocked | present | **fails** |
+When snapshot records an *installed* package, this runs **before** the repository checks, so a
+CRAN/PPM package whose DESCRIPTION has `biocViews` is recorded as `Source = "Bioconductor"`
+even though its `Repository` is `RSPM`. `renv_snapshot_validate_bioconductor()`
+(`snapshot.R:368`) then resolves the Bioconductor version over the network. This drives
+**scenarios 4, 6 and 7**. Note `BiocVersion` is never *discovered* on this path — the
+failure is purely version validation.
 
 ---
 
-## 1. Minimal fixture proof (scenarios 1 & 2)
+## 2. Discovery proof (scenarios 1 & 2)
 
 Two minimal local packages under `fixtures/` differ only in the presence of `biocViews`.
 Scenarios 1 and 2 run `renv::dependencies()` directly on each DESCRIPTION.
@@ -115,7 +135,7 @@ Scenarios 1 and 2 run `renv::dependencies()` directly on each DESCRIPTION.
 | `cranlike-no-biocviews` | absent | No | No |
 | `cranlike-with-biocviews` | `biocViews: Software` | **Yes** | **Yes** |
 
-The discovered-dependencies CSV for scenario 2 shows both packages with `Type = "Bioconductor"`:
+Scenario 2's discovered-dependencies CSV shows both packages tagged `Type = "Bioconductor"`:
 
 ```
 "Type","Source","Package","Require","Version","Dev"
@@ -124,41 +144,28 @@ The discovered-dependencies CSV for scenario 2 shows both packages with `Type = 
 "Bioconductor",".../cranlike-with-biocviews/DESCRIPTION","BiocVersion","","",FALSE
 ```
 
-Evidence: `artifacts/1/discovered-dependencies.csv` and `artifacts/2/discovered-dependencies.csv`.
+Evidence: `artifacts/1/discovered-dependencies.csv`, `artifacts/2/discovered-dependencies.csv`.
+
+A real CRAN package carries the same trigger: scenario 3 installs `recipes` from PPM and
+shows it has `biocViews: mixOmics` while `Repository: RSPM`
+(`artifacts/3/recipes_DESCRIPTION.txt`). `metaRNASeq`
+(`biocViews: HighThroughputSequencing, RNAseq, DifferentialExpression`) is used in
+scenarios 4–7 as the snapshot trigger because it is a CRAN package with zero compiled
+dependencies that installs quickly from PPM; `find_cran_biocviews.R` was used to find it.
 
 ---
 
-## 2. Real-package proof (scenario 3)
+## 3. Snapshot proof — the minimal pair (scenarios 4 & 5)
 
-Scenario 3 installs `recipes` from Posit Package Manager and inspects its DESCRIPTION.
-`recipes` has `biocViews: mixOmics` but is installed from CRAN/PPM, not from Bioconductor.
+Scenarios 4 and 5 are identical in every respect — same package (`metaRNASeq`), same source
+(PPM/RSPM), same two-phase blocked-network snapshot — **except** that scenario 5 strips the
+`biocViews` field from the installed package's DESCRIPTION before snapshot
+(`scripts/40_strip_biocviews.R`). `biocViews` is therefore the single independent variable.
 
-```r
-packageDescription("recipes")[c("Package", "Version", "Repository", "biocViews")]
-```
-
-Its `biocViews` metadata is sufficient to trigger renv's Bioconductor dependency injection.
-`metaRNASeq` (`biocViews: HighThroughputSequencing, RNAseq, DifferentialExpression`) is
-used in scenarios 4–7 as the snapshot trigger because it has zero compiled dependencies
-and installs quickly from PPM; `find_cran_biocviews.R` was used to identify it.
-
-Evidence: `artifacts/3/recipes_DESCRIPTION.txt` and `artifacts/3/output.log`.
-
----
-
-## 3. Snapshot proof (scenarios 4 & 5)
-
-Scenarios 4 and 5 use identical network configuration (Bioconductor blocked, PPM
-reachable). The only difference is which package is installed.
-
-| Scenario | Package | biocViews | Bioc blocked | Snapshot status |
-|----------|---------|-----------|--------------|-----------------|
-| **4** | `metaRNASeq` | present | Yes | **FAILURE** |
-| **5** | `glue` | absent | Yes | **SUCCESS** |
-
-**Scenario 5 is the key control**: the same blocked network does not prevent snapshot
-when there is no `biocViews` trigger. The failure in scenario 4 is caused entirely by
-renv's implicit `BiocVersion` dependency injection.
+| Scenario | biocViews on installed pkg | `snapshot()` | `metaRNASeq` in lock |
+|----------|----------------------------|--------------|----------------------|
+| **4** | present | **failure** | No |
+| **5** | stripped | **success** | Yes |
 
 **Exact error from scenario 4:**
 
@@ -168,63 +175,120 @@ validated; no internet connection?
     See #troubleshooting section in vignette'
 ```
 
-Evidence: `artifacts/4/output.log`, `artifacts/4/result.json`, `artifacts/5/result.json`.
+Removing `biocViews` is sufficient to make the same snapshot, on the same package, over the
+same blocked network, succeed. Evidence: `artifacts/4/result.json`, `artifacts/5/result.json`,
+and the two `renv.lock` files (`metaRNASeq` present only in scenario 5).
 
-Scenarios 4, 6, and 7 use a two-phase Docker approach: the package is installed via
-`renv::install()` with an open network (so renv records CRAN as the source), then
-snapshot runs in a second container with Bioconductor blocked.
+### Path B call stack (scenario 4)
+
+```
+renv::snapshot()
+  └─ build lockfile records for installed packages
+       └─ renv_snapshot_description_source()            [snapshot.R:940]
+            └─ installed metaRNASeq has biocViews → Source = "Bioconductor"
+               (even though Repository = RSPM)
+  └─ renv_snapshot_validate_bioconductor()              [snapshot.R:368]
+       └─ a record has Source == "Bioconductor"
+            └─ renv_bioconductor_version()              [snapshot.R:397 → bioconductor.R:108]
+            └─ renv_bioconductor_repos() → BiocManager$.repositories(version)
+                 └─ BiocManager validates the version via bioconductor.org/config.yaml
+                      └─ FAIL: connection refused (host blocked)
+                         └─ "Bioconductor version cannot be validated; no internet connection?"
+```
 
 ---
 
-## 4. Workaround analysis (scenarios 6 & 7)
+## 4. Install proof — Path A (scenario 8)
+
+Scenario 8 makes the project *itself* a package with `biocViews` (the
+`cranlike-with-biocviews` fixture). Here `renv::dependencies()` **genuinely discovers**
+`BiocManager` + `BiocVersion` (unlike Path B), and `renv::install()` of the project's
+declared dependencies fails:
+
+```
+✖ BiocVersion   failed to download
+ERROR: failed to install "BiocVersion" (package 'BiocVersion' is not available)
+```
+
+A `renv::snapshot()` of this same project would *not* fail (BiocVersion is merely discovered,
+never installed, so the snapshot-time Bioconductor validation never fires) — the breakage is
+at `install()` / `restore()` time. Evidence: `artifacts/8/result.json`,
+`artifacts/8/discovered-dependencies.csv` (shows `Type = "Bioconductor"` BiocVersion).
+
+### Path A call stack (scenario 8)
+
+```
+renv::install()   (same for renv::restore())
+  └─ discover project dependencies
+       └─ renv_dependencies_discover_description()      [dependencies.R:602]
+            └─ project DESCRIPTION biocViews → inject BiocManager + BiocVersion
+  └─ install the discovered dependencies
+       └─ BiocVersion resolved against Bioconductor repos → bioconductor.org blocked
+            └─ FAIL: "package 'BiocVersion' is not available"
+```
+
+---
+
+## 5. Workarounds do not resolve it (scenarios 6 & 7)
+
+Both common mitigations were run with the honest measurement above; **both still fail**.
 
 ### Scenario 6 — `renv::settings$bioconductor.version("3.20")`
 
-Pre-seeding the Bioconductor version bypasses the `BiocManager$version()` network call
-(see call stack above). Snapshot emits a warning but does not hard-fail. The lockfile is
-written. When the project is properly installed (not from local source), this is a viable
-workaround.
+Pinning the Bioconductor version makes renv skip its *own* version lookup
+(`renv_bioconductor_version()` returns `"3.20"` without a network call — verified). But
+`renv_bioconductor_repos()` then calls `BiocManager$.repositories(version = "3.20")`, and
+**BiocManager independently validates that version against `bioconductor.org/config.yaml`**.
+With that host blocked, snapshot still errors with "Bioconductor version cannot be validated".
+The lockfile written is the init-only lockfile; `metaRNASeq` is **not** recorded.
 
-**Status: WARNING — snapshot writes a partial lockfile.**
+**Status: FAILURE.** (`artifacts/6/result.json` — `snapshot_status: failure`,
+`target_package_recorded: false`, plus the captured `config.yaml` warnings.)
 
-### Scenario 7 — PPM Bioconductor mirror as `BioCsoft` repo
+### Scenario 7 — `BioCsoft` → PPM Bioconductor mirror
 
-Configuring `options(repos = c(CRAN = ..., BioCsoft = <PPM Bioconductor mirror>))` makes
-`BiocVersion` potentially available via PPM, but snapshot still fails with the same
-version validation error as scenario 4. The `BioCsoft` repo setting does not redirect
-`BiocManager$version()`'s call to `bioconductor.org/config.yaml` — that request is made
-unconditionally through BiocManager, not through renv's repo configuration.
+Setting `options(repos = c(CRAN = …, BioCsoft = <PPM mirror>))` does not redirect
+`BiocManager$version()`/`.repositories()`'s call to `bioconductor.org/config.yaml` — that
+request goes through BiocManager, not renv's `repos` option — so snapshot fails with the same
+version-validation error.
 
-**Status: FAILURE — Bioconductor version validation still hits bioconductor.org.**
+**Status: FAILURE.** (`artifacts/7/result.json`.)
 
-### Summary
+### Why no Bioconductor-side workaround fully works
+
+`metaRNASeq` is a **CRAN** package; renv only *thinks* it is Bioconductor because of its
+`biocViews` field. Pointing renv at a real Bioconductor mirror does not help, because the
+package is not in any Bioconductor release — renv's version-matching then flags it as "from a
+separate Bioconductor release". The mis-classification itself is the bug. The one mitigation
+demonstrated to work here is removing the `biocViews` trigger (scenario 5).
 
 | Scenario | Approach | Result |
 |----------|----------|--------|
-| 6 | `renv::settings$bioconductor.version("3.20")` | **warning** — lockfile written |
-| 7 | `BioCsoft` → PPM Bioconductor mirror | **fails** — `config.yaml` hit unconditionally |
-
-Evidence: `artifacts/6/result.json`, `artifacts/6/output.log`, `artifacts/7/result.json`.
+| 6 | `bioconductor.version("3.20")` | **fails** — BiocManager still validates via `config.yaml` |
+| 7 | `BioCsoft` → PPM mirror | **fails** — `config.yaml` reached unconditionally |
 
 ---
 
-## 5. Conclusion
+## 6. Conclusion
 
-This issue is not that Bioconductor repositories appear in the lockfile. The blocker is
-earlier: renv's dependency discovery converts a `biocViews` DESCRIPTION field into an
-implicit dependency on `BiocVersion`. Since `BiocVersion` is not available from
-CRAN-only PPM and Bioconductor is blocked, `renv::snapshot()` cannot complete for a
-project that otherwise uses only CRAN packages.
+A non-empty `biocViews` field on a CRAN/PPM-installed package (or on the project package
+itself) makes renv treat the project as a Bioconductor project. In a CRAN/PPM-only
+environment with Bioconductor unreachable this breaks **both** `renv::install()`/`restore()`
+(Path A — `BiocVersion` cannot be obtained) and `renv::snapshot()` (Path B — the inferred
+Bioconductor source forces a `config.yaml` version check). The minimal pair (scenarios 4 vs 5)
+shows `biocViews` is the sole cause; the workaround scenarios (6, 7) show the common
+mitigations do not resolve it.
 
 **Recommended path forward:**
 
-- **Viable workaround**: combine `renv::settings$bioconductor.version("3.20")` with a
-  reachable Bioconductor mirror (PPM or internal) so renv can both skip the `config.yaml`
-  lookup and actually install `BiocVersion` if needed.
-- **Upstream fix**: renv should not treat CRAN-installed packages with a `biocViews`
-  field as Bioconductor packages for the purpose of dependency injection when the user
-  has not opted into Bioconductor. See [renv#2149](https://github.com/rstudio/renv/issues/2149),
-  which fixed the empty-biocViews case but not the non-empty case.
+- **Upstream fix**: renv should not treat a CRAN/PPM-installed package with a `biocViews`
+  field as Bioconductor — for either dependency injection or snapshot source inference —
+  when the package was clearly installed from a non-Bioconductor repository. See
+  [renv#2149](https://github.com/rstudio/renv/issues/2149), which fixed the *empty*-biocViews
+  case but not the non-empty case.
+- **Local mitigation**: ensure Bioconductor (`bioconductor.org/config.yaml` and a package
+  mirror) is reachable, or avoid the `biocViews` trigger. The Bioconductor-version /
+  `BioCsoft`-mirror settings alone are **not** sufficient (scenarios 6, 7).
 
 ---
 
@@ -236,8 +300,10 @@ project that otherwise uses only CRAN packages.
 - **Bioc blocking**: Docker `--add-host` redirects `bioconductor.org → 127.0.0.1`
 - **Timeout**: 5 minutes per scenario
 - **Isolation**: each scenario = fresh container, no shared renv cache
-- **Two-phase scenarios (4, 6, 7)**: package installed with open network so renv records
-  CRAN as the source; snapshot run in a separate container with Bioconductor blocked
+- **Honest measurement**: warnings captured via `withCallingHandlers` (never abort the call);
+  success judged on lockfile / library contents, not on whether a warning was raised
+- **Two-phase scenarios (4–7)**: package installed with open network so renv records CRAN/PPM
+  as the source; the operation under test runs in a separate container with Bioconductor blocked
 
 ---
 
@@ -247,16 +313,17 @@ project that otherwise uses only CRAN packages.
 artifacts/<N>/
   output.log                   # combined stdout + stderr from the container
   result.json                  # structured outcome
-  discovered-dependencies.csv  # renv::dependencies() output (scenarios 1, 2, 4–7)
+  discovered-dependencies.csv  # renv::dependencies() output (scenarios 1, 2, 4–8)
   session-info.txt             # R sessionInfo()
-  renv.lock                    # lockfile if snapshot produced one (scenarios 4–7)
-  renv-settings.json           # renv project settings if written (scenarios 4–7)
+  renv.lock                    # lockfile if the operation produced one (scenarios 4–8)
+  renv-settings.json           # renv project settings if written (scenarios 4–8)
   recipes_DESCRIPTION.txt      # package metadata (scenario 3 only)
 ```
 
-`result.json` fields: `scenario`, `ppm_reachable`, `bioconductor_reachable`,
-`biocviews_present`, `biocmanager_discovered`, `biocversion_discovered`,
-`snapshot_status`, `snapshot_error_classification`, `renv_lock_written`.
+`result.json` fields: `scenario`, `operation`, `ppm_reachable`, `bioconductor_reachable`,
+`biocviews_present`, `biocmanager_discovered`, `biocversion_discovered`, `snapshot_status`,
+`snapshot_error_classification`, `snapshot_warnings`, `target_package`,
+`target_package_recorded`, `biocversion_in_lock`, `bioc_source_tagged`, `renv_lock_written`.
 
 ---
 

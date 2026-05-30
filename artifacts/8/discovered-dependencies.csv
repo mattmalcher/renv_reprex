@@ -1,0 +1,4 @@
+"Type","Source","Package","Require","Version","Dev"
+"Imports","/project/DESCRIPTION","stats","","",FALSE
+"Bioconductor","/project/DESCRIPTION","BiocManager","","",FALSE
+"Bioconductor","/project/DESCRIPTION","BiocVersion","","",FALSE

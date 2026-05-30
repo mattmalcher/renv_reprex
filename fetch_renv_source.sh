@@ -16,7 +16,8 @@ BASE_URL="https://raw.githubusercontent.com/rstudio/renv/v${RENV_VERSION}/R"
 DEST="$(cd "$(dirname "$0")" && pwd)/renv-source/R"
 
 FILES=(
-  dependencies.R    # renv_dependencies_discover_description() — the biocViews trigger
+  dependencies.R    # renv_dependencies_discover_description() — biocViews injection (Path A)
+  snapshot.R        # renv_snapshot_description_source() + validate_bioconductor() (Path B)
   bioconductor.R    # renv_bioconductor_version() — the network call path
 )
 

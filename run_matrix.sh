@@ -2,7 +2,7 @@
 # run_matrix.sh — build the renv biocViews/BiocVersion debugging harness and run scenarios.
 #
 # Usage:
-#   ./run_matrix.sh              # run all 7 scenarios
+#   ./run_matrix.sh              # run all 8 scenarios
 #   ./run_matrix.sh 2 4 5        # run specific scenarios
 #   ./run_matrix.sh --build-only # build image and exit
 #
@@ -139,14 +139,14 @@ run_two_phase_scenario() {
 
 # ── parse args ─────────────────────────────────────────────────────────────────
 
-ALL_SCENARIOS=(1 2 3 4 5 6 7)
+ALL_SCENARIOS=(1 2 3 4 5 6 7 8)
 RUN_SCENARIOS=()
 BUILD_ONLY=false
 
 for arg in "$@"; do
   case "$arg" in
     --build-only) BUILD_ONLY=true ;;
-    [1-7])        RUN_SCENARIOS+=("$arg") ;;
+    [1-8])        RUN_SCENARIOS+=("$arg") ;;
     *)            echo "Unknown argument: $arg" >&2; exit 1 ;;
   esac
 done
@@ -180,13 +180,14 @@ for s in "${RUN_SCENARIOS[@]}"; do
       run_scenario 3
       ;;
     4)
-      # Snapshot failure: metaRNASeq (biocViews), Bioc blocked
+      # Path B — snapshot failure: metaRNASeq (biocViews present), Bioc blocked
       # Two-phase: install open network; snapshot with Bioc blocked
       run_two_phase_scenario 4 "${BLOCK_HOSTS[@]}"
       ;;
     5)
-      # Snapshot control: glue (no biocViews), Bioc blocked throughout — should succeed
-      run_scenario 5 "${BLOCK_HOSTS[@]}"
+      # Minimal-pair control: metaRNASeq with biocViews stripped, Bioc blocked
+      # Two-phase, identical to scenario 4 except the biocViews field is removed
+      run_two_phase_scenario 5 "${BLOCK_HOSTS[@]}"
       ;;
     6)
       # Workaround: bioconductor.version("3.20"), Bioc blocked
@@ -195,6 +196,11 @@ for s in "${RUN_SCENARIOS[@]}"; do
     7)
       # Workaround: PPM Bioconductor mirror as BioCsoft repo, Bioc blocked
       run_two_phase_scenario 7 "${BLOCK_HOSTS[@]}" -e PPM_BIOC_URL="${PPM_BIOC_URL}"
+      ;;
+    8)
+      # Path A: project IS a package with biocViews; BiocVersion discovered, Bioc blocked
+      # Single-phase: no external package install needed
+      run_scenario 8 "${BLOCK_HOSTS[@]}"
       ;;
   esac
 done
@@ -209,7 +215,7 @@ $DOCKER run --rm \
   "$IMAGE" \
   --no-save --no-restore -e "
     library(jsonlite)
-    ss <- as.character(1:7)
+    ss <- as.character(1:8)
     results <- lapply(setNames(ss, ss), function(s) {
       p <- file.path('/artifacts', s, 'result.json')
       if (file.exists(p)) fromJSON(p, simplifyVector = FALSE)

@@ -514,9 +514,6 @@ downloaded 1.6 MB
 * installing *binary* package ‘recipes’ ...
 * DONE (recipes)
 
-The downloaded source packages are in
-	‘/tmp/RtmpjNYg4o/downloaded_packages’
-
 > cat("\nInstall result:", install_result, "\n\n")
 
 Install result: success 
@@ -529,6 +526,9 @@ Install result: success
 > biocviews_value <- ""
 
 > repository_value <- ""
+
+The downloaded source packages are in
+	‘/tmp/RtmpwBXl6l/downloaded_packages’
 
 > if (!is.null(desc)) {
 +     biocviews_value <- desc$biocViews %||% ""
@@ -547,16 +547,8 @@ Install result: success
 +             overwrite = TRUE)
 +         cat("Saved recipes DESCRIPTION to artifacts.\n")
 +     }
-+     meta_df <- data.frame(Field = c("Package", "Version", "Repository", 
-+         "biocViews"), Value = c(desc$Package %||% "", desc$Version %||% 
-+         "", repository_value, biocviews_value), stringsAsFactors = FALSE)
-+     write.csv(meta_df, file.path(out_dir, "discovered-dependencies.csv"), 
-+         row.names = FALSE)
-+     cat("Wrote discovered-dependencies.csv (recipes metadata)\n")
 + } else {
 +     cat("ERROR: recipes not installed or packageDescription() failed.\n")
-+     write.csv(data.frame(), file.path(out_dir, "discovered-dependencies.csv"), 
-+         row.names = FALSE)
 + }
 --- recipes metadata ---
 Package:    recipes 
@@ -565,7 +557,6 @@ Repository: RSPM
 biocViews:  mixOmics 
 
 Saved recipes DESCRIPTION to artifacts.
-Wrote discovered-dependencies.csv (recipes metadata)
 
 > notes <- paste0("recipes repository: '", repository_value, 
 +     "'. ", "biocViews: '", biocviews_value, "'. ", "Key point: recipes is installed from CRAN/PPM but has non-empty biocViews.")
@@ -639,14 +630,20 @@ Scenario: 3
 +         biocmanager_found <- isTRUE(snap$biocmanager_discovered)
 +     if (!biocversion_found && !is.null(snap$biocversion_discovered)) 
 +         biocversion_found <- isTRUE(snap$biocversion_discovered)
-+     biocviews_present <- scenario %in% c("4", "6", "7")
++     biocviews_present <- scenario %in% c("4", "6", "7", "8")
 +     snap_status <- snap$snapshot_status %||% "unknown"
 +     lock_written <- file.exists(file.path(out_dir, "renv.lock")) || 
 +         isTRUE(snap$renv_lock_written)
-+     result <- list(scenario = scenario, ppm_reachable = isTRUE(env$ppm_access), 
++     result <- list(scenario = scenario, operation = snap$operation %||% 
++         "renv::snapshot()", ppm_reachable = isTRUE(env$ppm_access), 
 +         bioconductor_reachable = isTRUE(env$bioc_access), biocviews_present = biocviews_present, 
 +         biocmanager_discovered = biocmanager_found, biocversion_discovered = biocversion_found, 
 +         snapshot_status = snap_status, snapshot_error_classification = snap$snapshot_error_classification %||% 
++             NA, snapshot_warnings = snap$snapshot_warnings %||% 
++             NA, target_package = snap$target_package %||% NA, 
++         target_package_recorded = snap$target_package_recorded %||% 
++             NA, biocversion_in_lock = snap$biocversion_in_lock %||% 
++             NA, bioc_source_tagged = snap$bioc_source_tagged %||% 
 +             NA, renv_lock_written = lock_written, notes = "")
 +     writeLines(jsonlite::toJSON(result, auto_unbox = TRUE, pretty = TRUE, 
 +         na = "null"), result_path)
