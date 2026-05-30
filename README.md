@@ -1,10 +1,10 @@
 # renv biocViews → BiocVersion dependency repro
 
 This repo demonstrates that renv treats a non-empty `biocViews` field in a DESCRIPTION
-file as a Bioconductor signal and injects `BiocManager` + `BiocVersion` as implicit
-dependencies. This can make `renv::snapshot()` fail in CRAN/PPM-only enterprise
-environments where Bioconductor is unreachable, even when the user has not explicitly
-depended on any Bioconductor package.
+file as a Bioconductor signal and injects `BiocManager` + `BiocVersion` (Bioconductor 
+only package!) as implicit dependencies. This can make `renv::snapshot()` fail in 
+CRAN/PPM-only enterprise environments where Bioconductor is unreachable, even when the 
+user has not explicitly depended on any Bioconductor package.
 
 **Environment used in this run**
 
