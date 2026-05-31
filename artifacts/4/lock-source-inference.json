@@ -1,0 +1,6 @@
+{
+  "Package": "metaRNASeq",
+  "Source": "Bioconductor",
+  "Repository": "RSPM",
+  "biocViews": "HighThroughputSequencing, RNAseq, DifferentialExpression"
+}

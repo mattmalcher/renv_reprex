@@ -1,30 +1,43 @@
-# 16_install_project_deps.R — Path A failure (scenario 8).
+# 16_install_project_deps.R — Path A (scenario 8): the project IS the package.
 #
-# The project IS a package whose DESCRIPTION carries biocViews. renv's dependency
-# discovery injects BiocManager + BiocVersion as implicit dependencies
-# (dependencies.R:602). Installing the project's declared dependencies then fails:
-# BiocVersion is a Bioconductor-only package, and with bioconductor.org blocked it
-# cannot be downloaded — even though the project otherwise uses only base/CRAN.
+# Setup + failure in one file. The project itself is a package whose DESCRIPTION
+# carries a non-empty biocViews field (the cranlike-with-biocviews fixture). We
+# make /project that package, init renv (bare, so deps aren't auto-installed),
+# then install the project's declared dependencies.
+#
+# renv's dependency discovery injects BiocManager + BiocVersion as implicit
+# dependencies (dependencies.R:602). Installing them then fails: BiocVersion is a
+# Bioconductor-only package, and with bioconductor.org blocked it cannot be
+# downloaded — even though the project otherwise uses only base/CRAN.
 #
 # This is the install/restore-time counterpart to Path B's snapshot-time failure
 # (scenario 4). A bare renv::snapshot() of this project would NOT fail (BiocVersion
 # is merely discovered, never installed, so the snapshot-time Bioconductor
 # validation never fires) — the breakage is at install/restore.
 
-`%||%` <- function(x, y) if (is.null(x)) y else x
-
-scenario <- Sys.getenv("SCENARIO", "8")
-out_dir  <- file.path("/artifacts", scenario)
-dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+source("/scripts/_common.R")
+fixture <- Sys.getenv("FIXTURE", "cranlike-with-biocviews")
 
 cat("=== 16_install_project_deps ===\n")
-cat("Scenario:", scenario, "\n\n")
+cat("Scenario:", scenario, "\n")
+cat("Fixture (used as the project package):", fixture, "\n\n")
 
 library(renv)
 library(jsonlite)
 
+# 0. Make /project the package: copy the fixture in, then init renv bare.
+src <- file.path("/fixtures", fixture)
+for (item in list.files(src, full.names = TRUE))
+  file.copy(item, ".", recursive = TRUE, overwrite = TRUE)
+cat("Project now contains:\n"); print(list.files(".", recursive = TRUE))
+cat("\n--- project DESCRIPTION ---\n")
+cat(paste(readLines("DESCRIPTION"), collapse = "\n"), "\n\n")
+
+cat("renv::init(bare = TRUE)  # do not auto-install deps; isolate the failure to install\n\n")
+renv::init(bare = TRUE, restart = FALSE)
+
 # 1. Prove the injection: dependency discovery over the project DESCRIPTION.
-cat("Running renv::dependencies() on the project...\n")
+cat("\nRunning renv::dependencies() on the project...\n")
 deps <- tryCatch(renv::dependencies(progress = FALSE, errors = "ignored"),
                  error = function(e) { cat("WARNING:", conditionMessage(e), "\n"); NULL })
 if (!is.null(deps) && nrow(deps) > 0) {
@@ -72,22 +85,17 @@ classify <- function(msg, warns) {
 
 # Write a snapshot_result.json so 70_collect_artifacts assembles result.json
 # uniformly. operation = "renv::install()" distinguishes Path A from Path B.
-writeLines(
-  toJSON(list(
-    operation                     = "renv::install()",
-    result                        = if (is.null(install_error)) "ok (but dependency missing)" else paste0("error: ", install_error),
-    biocmanager_discovered        = biocmanager_found,
-    biocversion_discovered        = biocversion_found,
-    snapshot_status               = status,
-    snapshot_error_classification = classify(install_error, install_warnings),
-    snapshot_warnings             = install_warnings,
-    renv_lock_written             = file.exists("renv.lock"),
-    target_package                = "BiocVersion",
-    target_package_recorded       = biocversion_installed,
-    biocversion_in_lock           = FALSE,
-    bioc_source_tagged            = FALSE
-  ), auto_unbox = TRUE, pretty = TRUE, na = "null"),
-  file.path(out_dir, "snapshot_result.json")
-)
+write_json(list(
+  operation                     = "renv::install()",
+  result                        = if (is.null(install_error)) "ok (but dependency missing)" else paste0("error: ", install_error),
+  biocmanager_discovered        = biocmanager_found,
+  biocversion_discovered        = biocversion_found,
+  snapshot_status               = status,
+  snapshot_error_classification = classify(install_error, install_warnings),
+  snapshot_warnings             = install_warnings,
+  renv_lock_written             = file.exists("renv.lock"),
+  target_package                = "BiocVersion",
+  target_package_recorded       = biocversion_installed
+), "snapshot_result.json")
 
 cat("\nDone.\n")

@@ -1,7 +1,5 @@
-scenario <- Sys.getenv("SCENARIO", "unknown")
-package  <- Sys.getenv("PACKAGE",  "metaRNASeq")
-out_dir  <- file.path("/artifacts", scenario)
-dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+source("/scripts/_common.R")
+package <- Sys.getenv("PACKAGE", "metaRNASeq")
 
 cat("=== 20_install_pkg ===\n")
 cat("Scenario:", scenario, "\n")

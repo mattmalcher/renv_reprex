@@ -1,13 +1,6 @@
 [run_scenario 3] Running 00_env_diagnostics...
 
-> `%||%` <- function(x, y) if (is.null(x) || (length(x) == 
-+     1 && is.na(x))) y else x
-
-> scenario <- Sys.getenv("SCENARIO", "unknown")
-
-> out_dir <- file.path("/artifacts", scenario)
-
-> dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+> source("/scripts/_common.R")
 
 > cat("=== 00_env_diagnostics ===\n")
 === 00_env_diagnostics ===
@@ -79,50 +72,55 @@ PPM reachable: TRUE
 > cat("Bioconductor reachable:", info$bioc_access, "\n")
 Bioconductor reachable: TRUE 
 
-> sink(file.path(out_dir, "session-info.txt"))
+> write_session_info()
 
 > jsonlite_ok <- requireNamespace("jsonlite", quietly = TRUE)
 
 > if (!jsonlite_ok) install.packages("jsonlite", repos = ppm_url, 
 +     quiet = TRUE)
 
-> writeLines(jsonlite::toJSON(info, auto_unbox = TRUE, 
-+     pretty = TRUE), file.path(out_dir, "env_diagnostics.json"))
+> write_json(info, "env_diagnostics.json")
 
 > cat("Wrote env_diagnostics.json, session-info.txt\n\nDone.\n")
 Wrote env_diagnostics.json, session-info.txt
 
 Done.
-[run_scenario 3] Running 03_inspect_recipes...
+[run_scenario 3] Running 03_inspect_cran_pkg...
 
-> scenario <- Sys.getenv("SCENARIO", "unknown")
+> source("/scripts/_common.R")
 
-> out_dir <- file.path("/artifacts", scenario)
+> package <- Sys.getenv("PACKAGE", "genetics")
 
-> dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+> cat("=== 03_inspect_cran_pkg ===\n")
+=== 03_inspect_cran_pkg ===
 
-> `%||%` <- function(x, y) if (is.null(x)) y else x
-
-> cat("=== 03_inspect_recipes ===\n")
-=== 03_inspect_recipes ===
-
-> cat("Scenario:", scenario, "\n\n")
+> cat("Scenario:", scenario, "\n")
 Scenario: 3 
+
+> cat("Package:", package, "\n\n")
+Package: genetics 
 
 
 > library(jsonlite)
 
+Attaching package: ‘jsonlite’
+
+The following object is masked _by_ ‘.GlobalEnv’:
+
+    write_json
+
+
 > ppm_url <- Sys.getenv("PPM_URL", "https://packagemanager.posit.co/cran/__linux__/noble/latest")
 
-> cat("Installing recipes from PPM...\n")
-Installing recipes from PPM...
+> cat("Installing", package, "from PPM...\n")
+Installing genetics from PPM...
 
 > cat("repos:", ppm_url, "\n\n")
 repos: https://packagemanager.posit.co/cran/__linux__/noble/latest 
 
 
 > install_result <- tryCatch({
-+     install.packages("recipes", repos = ppm_url, quiet = FALSE)
++     install.packages(package, repos = ppm_url, quiet = FALSE)
 +     "success"
 + }, warning = function(w) {
 +     cat("WARNING during install:", conditionMessage(w), "\n")
@@ -133,393 +131,53 @@ repos: https://packagemanager.posit.co/cran/__linux__/noble/latest
 + })
 Installing package into ‘/usr/local/lib/R/site-library’
 (as ‘lib’ is unspecified)
-also installing the dependencies ‘listenv’, ‘parallelly’, ‘future’, ‘globals’, ‘digest’, ‘gtable’, ‘isoband’, ‘S7’, ‘farver’, ‘labeling’, ‘RColorBrewer’, ‘viridisLite’, ‘shape’, ‘future.apply’, ‘numDeriv’, ‘progressr’, ‘SQUAREM’, ‘utf8’, ‘Rcpp’, ‘data.table’, ‘ggplot2’, ‘scales’, ‘diagram’, ‘lava’, ‘stringi’, ‘pillar’, ‘R6’, ‘tzdb’, ‘cpp11’, ‘prodlim’, ‘timechange’, ‘pkgconfig’, ‘stringr’, ‘dplyr’, ‘cli’, ‘clock’, ‘generics’, ‘glue’, ‘gower’, ‘hardhat’, ‘ipred’, ‘lifecycle’, ‘lubridate’, ‘magrittr’, ‘purrr’, ‘rlang’, ‘sparsevctrs’, ‘tibble’, ‘tidyr’, ‘tidyselect’, ‘timeDate’, ‘vctrs’, ‘withr’
+also installing the dependencies ‘combinat’, ‘gdata’, ‘gtools’, ‘mvtnorm’
 
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/listenv_0.10.1.tar.gz'
-Content type 'binary/octet-stream' length 124541 bytes (121 KB)
+trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/combinat_0.0-8.tar.gz'
+Content type 'binary/octet-stream' length 40917 bytes (39 KB)
 ==================================================
-downloaded 121 KB
+downloaded 39 KB
 
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/parallelly_1.47.0.tar.gz'
-Content type 'binary/octet-stream' length 619054 bytes (604 KB)
+trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/gdata_3.0.1.tar.gz'
+Content type 'binary/octet-stream' length 502055 bytes (490 KB)
 ==================================================
-downloaded 604 KB
+downloaded 490 KB
 
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/future_1.70.0.tar.gz'
-Content type 'binary/octet-stream' length 982092 bytes (959 KB)
+trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/gtools_3.9.5.tar.gz'
+Content type 'binary/octet-stream' length 361081 bytes (352 KB)
 ==================================================
-downloaded 959 KB
+downloaded 352 KB
 
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/globals_0.19.1.tar.gz'
-Content type 'binary/octet-stream' length 165871 bytes (161 KB)
-==================================================
-downloaded 161 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/digest_0.6.39.tar.gz'
-Content type 'binary/octet-stream' length 230361 bytes (224 KB)
-==================================================
-downloaded 224 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/gtable_0.3.6.tar.gz'
-Content type 'binary/octet-stream' length 222627 bytes (217 KB)
-==================================================
-downloaded 217 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/isoband_0.3.0.tar.gz'
-Content type 'binary/octet-stream' length 1676933 bytes (1.6 MB)
-==================================================
-downloaded 1.6 MB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/S7_0.2.2.tar.gz'
-Content type 'binary/octet-stream' length 325726 bytes (318 KB)
-==================================================
-downloaded 318 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/farver_2.1.2.tar.gz'
-Content type 'binary/octet-stream' length 1466627 bytes (1.4 MB)
-==================================================
-downloaded 1.4 MB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/labeling_0.4.3.tar.gz'
-Content type 'binary/octet-stream' length 60952 bytes (59 KB)
-==================================================
-downloaded 59 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/RColorBrewer_1.1-3.tar.gz'
-Content type 'binary/octet-stream' length 51823 bytes (50 KB)
-==================================================
-downloaded 50 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/viridisLite_0.4.3.tar.gz'
-Content type 'binary/octet-stream' length 1297558 bytes (1.2 MB)
-==================================================
-downloaded 1.2 MB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/shape_1.4.6.1.tar.gz'
-Content type 'binary/octet-stream' length 750076 bytes (732 KB)
-==================================================
-downloaded 732 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/future.apply_1.20.2.tar.gz'
-Content type 'binary/octet-stream' length 193512 bytes (188 KB)
-==================================================
-downloaded 188 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/numDeriv_2016.8-1.1.tar.gz'
-Content type 'binary/octet-stream' length 114340 bytes (111 KB)
-==================================================
-downloaded 111 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/progressr_0.19.0.tar.gz'
-Content type 'binary/octet-stream' length 515679 bytes (503 KB)
-==================================================
-downloaded 503 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/SQUAREM_2026.1.tar.gz'
-Content type 'binary/octet-stream' length 177991 bytes (173 KB)
-==================================================
-downloaded 173 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/utf8_1.2.6.tar.gz'
-Content type 'binary/octet-stream' length 151756 bytes (148 KB)
-==================================================
-downloaded 148 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/Rcpp_1.1.1-1.1.tar.gz'
-Content type 'binary/octet-stream' length 2213717 bytes (2.1 MB)
-==================================================
-downloaded 2.1 MB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/data.table_1.18.4.tar.gz'
-Content type 'binary/octet-stream' length 2963972 bytes (2.8 MB)
-==================================================
-downloaded 2.8 MB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/ggplot2_4.0.3.tar.gz'
-Content type 'binary/octet-stream' length 8450175 bytes (8.1 MB)
-==================================================
-downloaded 8.1 MB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/scales_1.4.0.tar.gz'
-Content type 'binary/octet-stream' length 840991 bytes (821 KB)
-==================================================
-downloaded 821 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/diagram_1.6.5.tar.gz'
-Content type 'binary/octet-stream' length 682418 bytes (666 KB)
-==================================================
-downloaded 666 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/lava_1.9.1.tar.gz'
-Content type 'binary/octet-stream' length 2459661 bytes (2.3 MB)
-==================================================
-downloaded 2.3 MB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/stringi_1.8.7.tar.gz'
-Content type 'binary/octet-stream' length 3294694 bytes (3.1 MB)
-==================================================
-downloaded 3.1 MB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/pillar_1.11.1.tar.gz'
-Content type 'binary/octet-stream' length 660070 bytes (644 KB)
-==================================================
-downloaded 644 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/R6_2.6.1.tar.gz'
-Content type 'binary/octet-stream' length 86805 bytes (84 KB)
-==================================================
-downloaded 84 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/tzdb_0.5.0.tar.gz'
-Content type 'binary/octet-stream' length 666608 bytes (650 KB)
-==================================================
-downloaded 650 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/cpp11_0.5.5.tar.gz'
-Content type 'binary/octet-stream' length 303008 bytes (295 KB)
-==================================================
-downloaded 295 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/prodlim_2026.03.11.tar.gz'
-Content type 'binary/octet-stream' length 529308 bytes (516 KB)
-==================================================
-downloaded 516 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/timechange_0.4.0.tar.gz'
-Content type 'binary/octet-stream' length 174951 bytes (170 KB)
-==================================================
-downloaded 170 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/pkgconfig_2.0.3.tar.gz'
-Content type 'binary/octet-stream' length 18089 bytes (17 KB)
-==================================================
-downloaded 17 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/stringr_1.6.0.tar.gz'
-Content type 'binary/octet-stream' length 333495 bytes (325 KB)
-==================================================
-downloaded 325 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/dplyr_1.2.1.tar.gz'
-Content type 'binary/octet-stream' length 1521621 bytes (1.5 MB)
-==================================================
-downloaded 1.5 MB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/cli_3.6.6.tar.gz'
-Content type 'binary/octet-stream' length 1345017 bytes (1.3 MB)
-==================================================
-downloaded 1.3 MB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/clock_0.7.4.tar.gz'
-Content type 'binary/octet-stream' length 1929031 bytes (1.8 MB)
-==================================================
-downloaded 1.8 MB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/generics_0.1.4.tar.gz'
-Content type 'binary/octet-stream' length 80212 bytes (78 KB)
-==================================================
-downloaded 78 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/glue_1.8.1.tar.gz'
-Content type 'binary/octet-stream' length 173640 bytes (169 KB)
-==================================================
-downloaded 169 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/gower_1.0.2.tar.gz'
-Content type 'binary/octet-stream' length 207926 bytes (203 KB)
-==================================================
-downloaded 203 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/hardhat_1.4.3.tar.gz'
-Content type 'binary/octet-stream' length 884086 bytes (863 KB)
-==================================================
-downloaded 863 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/ipred_0.9-15.tar.gz'
-Content type 'binary/octet-stream' length 384421 bytes (375 KB)
-==================================================
-downloaded 375 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/lifecycle_1.0.5.tar.gz'
-Content type 'binary/octet-stream' length 131736 bytes (128 KB)
-==================================================
-downloaded 128 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/lubridate_1.9.5.tar.gz'
-Content type 'binary/octet-stream' length 983852 bytes (960 KB)
-==================================================
-downloaded 960 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/magrittr_2.0.5.tar.gz'
-Content type 'binary/octet-stream' length 221789 bytes (216 KB)
-==================================================
-downloaded 216 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/purrr_1.2.2.tar.gz'
-Content type 'binary/octet-stream' length 553735 bytes (540 KB)
-==================================================
-downloaded 540 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/rlang_1.2.0.tar.gz'
-Content type 'binary/octet-stream' length 1612075 bytes (1.5 MB)
-==================================================
-downloaded 1.5 MB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/sparsevctrs_0.3.6.tar.gz'
-Content type 'binary/octet-stream' length 199122 bytes (194 KB)
-==================================================
-downloaded 194 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/tibble_3.3.1.tar.gz'
-Content type 'binary/octet-stream' length 647814 bytes (632 KB)
-==================================================
-downloaded 632 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/tidyr_1.3.2.tar.gz'
-Content type 'binary/octet-stream' length 1177180 bytes (1.1 MB)
+trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/mvtnorm_1.4-0.tar.gz'
+Content type 'binary/octet-stream' length 1126566 bytes (1.1 MB)
 ==================================================
 downloaded 1.1 MB
 
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/tidyselect_1.2.1.tar.gz'
-Content type 'binary/octet-stream' length 225331 bytes (220 KB)
+trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/genetics_1.3.8.1.3.tar.gz'
+Content type 'binary/octet-stream' length 373330 bytes (364 KB)
 ==================================================
-downloaded 220 KB
+downloaded 364 KB
 
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/timeDate_4052.112.tar.gz'
-Content type 'binary/octet-stream' length 1480652 bytes (1.4 MB)
-==================================================
-downloaded 1.4 MB
+* installing *binary* package ‘combinat’ ...
+* DONE (combinat)
+* installing *binary* package ‘gtools’ ...
+* DONE (gtools)
+* installing *binary* package ‘mvtnorm’ ...
+* DONE (mvtnorm)
+* installing *binary* package ‘gdata’ ...
+* DONE (gdata)
+* installing *binary* package ‘genetics’ ...
+* DONE (genetics)
 
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/vctrs_0.7.3.tar.gz'
-Content type 'binary/octet-stream' length 1862967 bytes (1.8 MB)
-==================================================
-downloaded 1.8 MB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/withr_3.0.2.tar.gz'
-Content type 'binary/octet-stream' length 223887 bytes (218 KB)
-==================================================
-downloaded 218 KB
-
-trying URL 'https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/recipes_1.3.2.tar.gz'
-Content type 'binary/octet-stream' length 1727207 bytes (1.6 MB)
-==================================================
-downloaded 1.6 MB
-
-* installing *binary* package ‘listenv’ ...
-* DONE (listenv)
-* installing *binary* package ‘parallelly’ ...
-* DONE (parallelly)
-* installing *binary* package ‘globals’ ...
-* DONE (globals)
-* installing *binary* package ‘digest’ ...
-* DONE (digest)
-* installing *binary* package ‘S7’ ...
-* DONE (S7)
-* installing *binary* package ‘farver’ ...
-* DONE (farver)
-* installing *binary* package ‘labeling’ ...
-* DONE (labeling)
-* installing *binary* package ‘RColorBrewer’ ...
-* DONE (RColorBrewer)
-* installing *binary* package ‘viridisLite’ ...
-* DONE (viridisLite)
-* installing *binary* package ‘shape’ ...
-* DONE (shape)
-* installing *binary* package ‘numDeriv’ ...
-* DONE (numDeriv)
-* installing *binary* package ‘SQUAREM’ ...
-* DONE (SQUAREM)
-* installing *binary* package ‘utf8’ ...
-* DONE (utf8)
-* installing *binary* package ‘Rcpp’ ...
-* DONE (Rcpp)
-* installing *binary* package ‘data.table’ ...
-* DONE (data.table)
-* installing *binary* package ‘stringi’ ...
-* DONE (stringi)
-* installing *binary* package ‘R6’ ...
-* DONE (R6)
-* installing *binary* package ‘cpp11’ ...
-* DONE (cpp11)
-* installing *binary* package ‘pkgconfig’ ...
-* DONE (pkgconfig)
-* installing *binary* package ‘cli’ ...
-* DONE (cli)
-* installing *binary* package ‘generics’ ...
-* DONE (generics)
-* installing *binary* package ‘glue’ ...
-* DONE (glue)
-* installing *binary* package ‘gower’ ...
-* DONE (gower)
-* installing *binary* package ‘magrittr’ ...
-* DONE (magrittr)
-* installing *binary* package ‘rlang’ ...
-* DONE (rlang)
-* installing *binary* package ‘timeDate’ ...
-* DONE (timeDate)
-* installing *binary* package ‘withr’ ...
-* DONE (withr)
-* installing *binary* package ‘future’ ...
-* DONE (future)
-* installing *binary* package ‘isoband’ ...
-* DONE (isoband)
-* installing *binary* package ‘progressr’ ...
-* DONE (progressr)
-* installing *binary* package ‘diagram’ ...
-* DONE (diagram)
-* installing *binary* package ‘tzdb’ ...
-* DONE (tzdb)
-* installing *binary* package ‘timechange’ ...
-* DONE (timechange)
-* installing *binary* package ‘lifecycle’ ...
-* DONE (lifecycle)
-* installing *binary* package ‘gtable’ ...
-* DONE (gtable)
-* installing *binary* package ‘future.apply’ ...
-* DONE (future.apply)
-* installing *binary* package ‘scales’ ...
-* DONE (scales)
-* installing *binary* package ‘lubridate’ ...
-* DONE (lubridate)
-* installing *binary* package ‘vctrs’ ...
-* DONE (vctrs)
-* installing *binary* package ‘ggplot2’ ...
-* DONE (ggplot2)
-* installing *binary* package ‘lava’ ...
-* DONE (lava)
-* installing *binary* package ‘pillar’ ...
-* DONE (pillar)
-* installing *binary* package ‘stringr’ ...
-* DONE (stringr)
-* installing *binary* package ‘clock’ ...
-* DONE (clock)
-* installing *binary* package ‘purrr’ ...
-* DONE (purrr)
-* installing *binary* package ‘sparsevctrs’ ...
-* DONE (sparsevctrs)
-* installing *binary* package ‘tidyselect’ ...
-* DONE (tidyselect)
-* installing *binary* package ‘prodlim’ ...
-* DONE (prodlim)
-* installing *binary* package ‘tibble’ ...
-* DONE (tibble)
-* installing *binary* package ‘dplyr’ ...
-* DONE (dplyr)
-* installing *binary* package ‘hardhat’ ...
-* DONE (hardhat)
-* installing *binary* package ‘ipred’ ...
-* DONE (ipred)
-* installing *binary* package ‘tidyr’ ...
-* DONE (tidyr)
-* installing *binary* package ‘recipes’ ...
-* DONE (recipes)
+The downloaded source packages are in
+	‘/tmp/Rtmp2krllx/downloaded_packages’
 
 > cat("\nInstall result:", install_result, "\n\n")
 
 Install result: success 
 
 
-> desc <- tryCatch(packageDescription("recipes"), error = function(e) NULL)
+> desc <- tryCatch(packageDescription(package), error = function(e) NULL)
 
 > biocviews_present <- FALSE
 
@@ -527,41 +185,39 @@ Install result: success
 
 > repository_value <- ""
 
-The downloaded source packages are in
-	‘/tmp/RtmpwBXl6l/downloaded_packages’
-
 > if (!is.null(desc)) {
 +     biocviews_value <- desc$biocViews %||% ""
 +     repository_value <- desc$Repository %||% ""
 +     biocviews_present <- nzchar(biocviews_value)
-+     cat("--- recipes metadata ---\n")
++     cat("---", package, "metadata ---\n")
 +     cat("Package:   ", desc$Package %||% "unknown", "\n")
 +     cat("Version:   ", desc$Version %||% "unknown", "\n")
 +     cat("Repository:", repository_value, "\n")
 +     cat("biocViews: ", if (biocviews_present) 
 +         biocviews_value
 +     else "(absent)", "\n\n")
-+     desc_path <- system.file("DESCRIPTION", package = "recipes")
++     desc_path <- system.file("DESCRIPTION", package = package)
 +     if (file.exists(desc_path)) {
-+         file.copy(desc_path, file.path(out_dir, "recipes_DESCRIPTION.txt"), 
++         file.copy(desc_path, file.path(out_dir, "cran-pkg_DESCRIPTION.txt"), 
 +             overwrite = TRUE)
-+         cat("Saved recipes DESCRIPTION to artifacts.\n")
++         cat("Saved", package, "DESCRIPTION to artifacts.\n")
 +     }
 + } else {
-+     cat("ERROR: recipes not installed or packageDescription() failed.\n")
++     cat("ERROR:", package, "not installed or packageDescription() failed.\n")
 + }
---- recipes metadata ---
-Package:    recipes 
-Version:    1.3.2 
+--- genetics metadata ---
+Package:    genetics 
+Version:    1.3.8.1.3 
 Repository: RSPM 
-biocViews:  mixOmics 
+biocViews:  Genetics 
 
-Saved recipes DESCRIPTION to artifacts.
+Saved genetics DESCRIPTION to artifacts.
 
-> notes <- paste0("recipes repository: '", repository_value, 
-+     "'. ", "biocViews: '", biocviews_value, "'. ", "Key point: recipes is installed from CRAN/PPM but has non-empty biocViews.")
+> notes <- paste0(package, " repository: '", repository_value, 
++     "'. ", "biocViews: '", biocviews_value, "'. ", "Key point: ", 
++     package, " is installed from CRAN/PPM but has non-empty biocViews.")
 
-> sink(file.path(out_dir, "session-info.txt"))
+> write_session_info()
 
 > result <- list(scenario = scenario, ppm_reachable = TRUE, 
 +     bioconductor_reachable = NA, biocviews_present = biocviews_present, 
@@ -569,8 +225,7 @@ Saved recipes DESCRIPTION to artifacts.
 +     snapshot_status = "not_run", snapshot_error_classification = NA, 
 +     renv_lock_written = FALSE, notes = notes)
 
-> writeLines(toJSON(result, auto_unbox = TRUE, pretty = TRUE, 
-+     na = "null"), file.path(out_dir, "result.json"))
+> write_json(result, "result.json")
 
 > cat("Wrote result.json\n\nDone.\n")
 Wrote result.json
@@ -578,12 +233,7 @@ Wrote result.json
 Done.
 [run_scenario 3] Running 70_collect_artifacts (no-init-file)...
 
-> `%||%` <- function(x, y) if (is.null(x) || (length(x) == 
-+     1 && is.na(x))) y else x
-
-> scenario <- Sys.getenv("SCENARIO", "unknown")
-
-> artifacts_root <- "/artifacts"
+> source("/scripts/_common.R")
 
 > cat("=== 70_collect_artifacts ===\n")
 === 70_collect_artifacts ===
@@ -596,8 +246,6 @@ Scenario: 3
 +     tryCatch(jsonlite::fromJSON(path, simplifyVector = FALSE), 
 +         error = function(e) list())
 + }
-
-> out_dir <- file.path(artifacts_root, scenario)
 
 > for (src in c("/project/renv.lock", "/project/renv/settings.json")) {
 +     if (file.exists(src)) {
@@ -615,6 +263,7 @@ Scenario: 3
 +     "2", "3"))) {
 +     env <- read_json_safe(file.path(out_dir, "env_diagnostics.json"))
 +     snap <- read_json_safe(file.path(out_dir, "snapshot_result.json"))
++     srcinf <- read_json_safe(file.path(out_dir, "source_inference.json"))
 +     deps_csv <- file.path(out_dir, "discovered-dependencies.csv")
 +     biocmanager_found <- FALSE
 +     biocversion_found <- FALSE
@@ -642,13 +291,12 @@ Scenario: 3
 +             NA, snapshot_warnings = snap$snapshot_warnings %||% 
 +             NA, target_package = snap$target_package %||% NA, 
 +         target_package_recorded = snap$target_package_recorded %||% 
-+             NA, biocversion_in_lock = snap$biocversion_in_lock %||% 
-+             NA, bioc_source_tagged = snap$bioc_source_tagged %||% 
++             NA, metarnaseq_source_open_network = srcinf$metarnaseq_source_open_network %||% 
 +             NA, renv_lock_written = lock_written, notes = "")
-+     writeLines(jsonlite::toJSON(result, auto_unbox = TRUE, pretty = TRUE, 
-+         na = "null"), result_path)
++     write_json(result, "result.json")
 +     cat("Wrote result.json\n")
-+     for (f in c("snapshot_result.json", "env_diagnostics.json")) {
++     for (f in c("snapshot_result.json", "env_diagnostics.json", 
++         "source_inference.json")) {
 +         p <- file.path(out_dir, f)
 +         if (file.exists(p)) 
 +             file.remove(p)
@@ -674,7 +322,7 @@ Outcome:
   "snapshot_status": "not_run",
   "snapshot_error_classification": null,
   "renv_lock_written": false,
-  "notes": "recipes repository: 'RSPM'. biocViews: 'mixOmics'. Key point: recipes is installed from CRAN/PPM but has non-empty biocViews."
+  "notes": "genetics repository: 'RSPM'. biocViews: 'Genetics'. Key point: genetics is installed from CRAN/PPM but has non-empty biocViews."
 } 
 
 > cat("\nDone.\n")

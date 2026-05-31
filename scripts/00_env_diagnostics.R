@@ -1,7 +1,4 @@
-`%||%` <- function(x, y) if (is.null(x) || (length(x) == 1 && is.na(x))) y else x
-scenario <- Sys.getenv("SCENARIO", "unknown")
-out_dir  <- file.path("/artifacts", scenario)
-dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+source("/scripts/_common.R")
 
 cat("=== 00_env_diagnostics ===\n")
 cat("Scenario:", scenario, "\n\n")
@@ -50,15 +47,10 @@ cat("\nrenv version:", renv_ver, "\n")
 cat("PPM reachable:", info$ppm_access, "\n")
 cat("Bioconductor reachable:", info$bioc_access, "\n")
 
-sink(file.path(out_dir, "session-info.txt"))
-print(sessionInfo())
-sink()
+write_session_info()
 
 jsonlite_ok <- requireNamespace("jsonlite", quietly = TRUE)
 if (!jsonlite_ok) install.packages("jsonlite", repos = ppm_url, quiet = TRUE)
 
-writeLines(
-  jsonlite::toJSON(info, auto_unbox = TRUE, pretty = TRUE),
-  file.path(out_dir, "env_diagnostics.json")
-)
+write_json(info, "env_diagnostics.json")
 cat("Wrote env_diagnostics.json, session-info.txt\n\nDone.\n")

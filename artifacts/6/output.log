@@ -1,11 +1,7 @@
-[run_scenario 6] Installed .Rprofile from /templates/scenario_6.Rprofile
+[run_scenario 6] No .Rprofile template for scenario 6 — renv::init() will create one
 [run_scenario 6] Running 10_init_project...
 
-> scenario <- Sys.getenv("SCENARIO", "unknown")
-
-> out_dir <- file.path("/artifacts", scenario)
-
-> dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+> source("/scripts/_common.R")
 
 > cat("=== 10_init_project ===\n")
 === 10_init_project ===
@@ -201,13 +197,9 @@ renv/settings.json after bioconductor.version():
 Done.
 [run_scenario 6] Running 20_install_pkg...
 
-> scenario <- Sys.getenv("SCENARIO", "unknown")
+> source("/scripts/_common.R")
 
 > package <- Sys.getenv("PACKAGE", "metaRNASeq")
-
-> out_dir <- file.path("/artifacts", scenario)
-
-> dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 > cat("=== 20_install_pkg ===\n")
 === 20_install_pkg ===
@@ -231,12 +223,12 @@ The following objects are masked from ‘package:utils’:
 
     history, upgrade
 
-
-> renv::settings$use.cache(FALSE)
 The following objects are masked from ‘package:base’:
 
     autoload, load, remove, use
 
+
+> renv::settings$use.cache(FALSE)
 - Synchronizing project library with the cache ... Done!
 - The cache has been disabled for this project.
 
@@ -263,11 +255,11 @@ These packages will be installed into "/project/renv/library/linux-ubuntu-noble/
 
 # Downloading packages -------------------------------------------------------
 [?25l  (0/1) Downloading: metaRNASeq                                                                                                                                 [32m✔[0m metaRNASeq 1.0.8                         [1.3 MB in 0.63s]
-                                                                                Successfully downloaded 1 package in 0.73 seconds.
+                                                                                Successfully downloaded 1 package in 0.75 seconds.
 
 # Installing packages --------------------------------------------------------
                                                                                 [32m✔[0m metaRNASeq 1.0.8                         [installed binary]
-Successfully installed 1 package in 0.12 seconds.
+Successfully installed 1 package in 0.16 seconds.
 [?25h
 > cat("\nInstall result:", result, "\n")
 
@@ -284,16 +276,8 @@ Done.
 [run_scenario 6] Done.
 [run_scenario 6] Running 00_env_diagnostics...
 - The project is out-of-sync -- use `renv::status()` for details.
-- The project is out-of-sync -- use `renv::status()` for details.
 
-> `%||%` <- function(x, y) if (is.null(x) || (length(x) == 
-+     1 && is.na(x))) y else x
-
-> scenario <- Sys.getenv("SCENARIO", "unknown")
-
-> out_dir <- file.path("/artifacts", scenario)
-
-> dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+> source("/scripts/_common.R")
 
 > cat("=== 00_env_diagnostics ===\n")
 === 00_env_diagnostics ===
@@ -365,36 +349,28 @@ PPM reachable: TRUE
 > cat("Bioconductor reachable:", info$bioc_access, "\n")
 Bioconductor reachable: FALSE 
 
-> sink(file.path(out_dir, "session-info.txt"))
+> write_session_info()
 
 > jsonlite_ok <- requireNamespace("jsonlite", quietly = TRUE)
 
 > if (!jsonlite_ok) install.packages("jsonlite", repos = ppm_url, 
 +     quiet = TRUE)
 
-> writeLines(jsonlite::toJSON(info, auto_unbox = TRUE, 
-+     pretty = TRUE), file.path(out_dir, "env_diagnostics.json"))
-Warning message:
-In system2("curl", args, stdout = TRUE, stderr = FALSE) :
-  running command ''curl' -s -o /dev/null -w %{http_code} --connect-timeout 10 --max-time 10 https://bioconductor.org 2>/dev/null' had status 7 and error message 'Function not implemented'
+> write_json(info, "env_diagnostics.json")
 
 > cat("Wrote env_diagnostics.json, session-info.txt\n\nDone.\n")
 Wrote env_diagnostics.json, session-info.txt
 
 Done.
+Warning message:
+In system2("curl", args, stdout = TRUE, stderr = FALSE) :
+  running command ''curl' -s -o /dev/null -w %{http_code} --connect-timeout 10 --max-time 10 https://bioconductor.org 2>/dev/null' had status 7 and error message 'Function not implemented'
 [run_scenario 6] Running 30_snapshot...
 - The project is out-of-sync -- use `renv::status()` for details.
-- The project is out-of-sync -- use `renv::status()` for details.
 
-> `%||%` <- function(x, y) if (is.null(x)) y else x
-
-> scenario <- Sys.getenv("SCENARIO", "unknown")
+> source("/scripts/_common.R")
 
 > target <- Sys.getenv("PACKAGE", "")
-
-> out_dir <- file.path("/artifacts", scenario)
-
-> dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 > cat("=== 30_snapshot ===\n")
 === 30_snapshot ===
@@ -425,6 +401,13 @@ The following objects are masked from ‘package:base’:
 
 
 > library(jsonlite)
+
+Attaching package: ‘jsonlite’
+
+The following object is masked _by_ ‘.GlobalEnv’:
+
+    write_json
+
 
 > cat("Running renv::dependencies() to capture dependency list...\n")
 Running renv::dependencies() to capture dependency list...
@@ -488,20 +471,11 @@ ERROR: Bioconductor version cannot be validated; no internet connection?  See
 
 > recorded_packages <- character()
 
-> biocversion_in_lock <- FALSE
-
-> bioc_source_tagged <- FALSE
-
 > if (file.exists("renv.lock")) {
 +     lock <- tryCatch(jsonlite::fromJSON("renv.lock", simplifyVector = FALSE), 
 +         error = function(e) NULL)
-+     if (!is.null(lock) && !is.null(lock$Packages)) {
++     if (!is.null(lock) && !is.null(lock$Packages)) 
 +         recorded_packages <- names(lock$Packages)
-+         biocversion_in_lock <- "BiocVersion" %in% recorded_packages
-+         srcs <- vapply(lock$Packages, function(p) p$Source %||% 
-+             "", character(1))
-+         bioc_source_tagged <- any(srcs == "Bioconductor")
-+     }
 +     file.copy("renv.lock", file.path(out_dir, "renv.lock"), overwrite = TRUE)
 + }
 [1] TRUE
@@ -517,15 +491,8 @@ ERROR: Bioconductor version cannot be validated; no internet connection?  See
 Recorded packages: renv 
 
 > cat("Target recorded:", if (nzchar(target)) target_recorded else NA, 
-+     "\n")
-Target recorded: FALSE 
-
-> cat("BiocVersion in lock:", biocversion_in_lock, "\n")
-BiocVersion in lock: FALSE 
-
-> cat("A package tagged Source=Bioconductor:", bioc_source_tagged, 
 +     "\n\n")
-A package tagged Source=Bioconductor: FALSE 
+Target recorded: FALSE 
 
 
 > if (file.exists("renv/settings.json")) {
@@ -562,27 +529,20 @@ A package tagged Source=Bioconductor: FALSE
 > cat("Snapshot status:", snap_status, "\n")
 Snapshot status: failure 
 
-> writeLines(toJSON(list(result = if (is.null(snap_error)) "ok" else paste0("error: ", 
+> write_json(list(result = if (is.null(snap_error)) "ok" else paste0("error: ", 
 +     snap_error), biocmanager_discovered = biocmanager_found, 
 +     biocversion_discovered = biocversion_found, snapshot_status = snap_status, 
 +     snapshot_error_classification = classify_snap_error(snap_error), 
 +     snapshot_warnings = snap_warnings, renv_lock_written = file.exists("renv.lock"), 
-+     target_package = target, target_package_recorded = if (nzchar(target)) target_recorded else NA, 
-+     biocversion_in_lock = biocversion_in_lock, bioc_source_tagged = bioc_source_tagged), 
-+     auto_unbox = TRUE, pretty = TRUE, na = "null"), file.path(out_dir, 
-+     "snapshot_result.json"))
++     target_package = target, target_package_recorded = if (nzchar(target)) target_recorded else NA), 
++     "snapshot_result.json")
 
 > cat("\nDone.\n")
 
 Done.
 [run_scenario 6] Running 70_collect_artifacts (no-init-file)...
 
-> `%||%` <- function(x, y) if (is.null(x) || (length(x) == 
-+     1 && is.na(x))) y else x
-
-> scenario <- Sys.getenv("SCENARIO", "unknown")
-
-> artifacts_root <- "/artifacts"
+> source("/scripts/_common.R")
 
 > cat("=== 70_collect_artifacts ===\n")
 === 70_collect_artifacts ===
@@ -595,8 +555,6 @@ Scenario: 6
 +     tryCatch(jsonlite::fromJSON(path, simplifyVector = FALSE), 
 +         error = function(e) list())
 + }
-
-> out_dir <- file.path(artifacts_root, scenario)
 
 > for (src in c("/project/renv.lock", "/project/renv/settings.json")) {
 +     if (file.exists(src)) {
@@ -616,6 +574,7 @@ Saved /project/renv/settings.json → renv-settings.json
 +     "2", "3"))) {
 +     env <- read_json_safe(file.path(out_dir, "env_diagnostics.json"))
 +     snap <- read_json_safe(file.path(out_dir, "snapshot_result.json"))
++     srcinf <- read_json_safe(file.path(out_dir, "source_inference.json"))
 +     deps_csv <- file.path(out_dir, "discovered-dependencies.csv")
 +     biocmanager_found <- FALSE
 +     biocversion_found <- FALSE
@@ -643,13 +602,12 @@ Saved /project/renv/settings.json → renv-settings.json
 +             NA, snapshot_warnings = snap$snapshot_warnings %||% 
 +             NA, target_package = snap$target_package %||% NA, 
 +         target_package_recorded = snap$target_package_recorded %||% 
-+             NA, biocversion_in_lock = snap$biocversion_in_lock %||% 
-+             NA, bioc_source_tagged = snap$bioc_source_tagged %||% 
++             NA, metarnaseq_source_open_network = srcinf$metarnaseq_source_open_network %||% 
 +             NA, renv_lock_written = lock_written, notes = "")
-+     writeLines(jsonlite::toJSON(result, auto_unbox = TRUE, pretty = TRUE, 
-+         na = "null"), result_path)
++     write_json(result, "result.json")
 +     cat("Wrote result.json\n")
-+     for (f in c("snapshot_result.json", "env_diagnostics.json")) {
++     for (f in c("snapshot_result.json", "env_diagnostics.json", 
++         "source_inference.json")) {
 +         p <- file.path(out_dir, f)
 +         if (file.exists(p)) 
 +             file.remove(p)
@@ -681,8 +639,7 @@ Outcome:
   ],
   "target_package": "metaRNASeq",
   "target_package_recorded": false,
-  "biocversion_in_lock": false,
-  "bioc_source_tagged": false,
+  "metarnaseq_source_open_network": null,
   "renv_lock_written": true,
   "notes": ""
 } 

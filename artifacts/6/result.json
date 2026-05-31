@@ -14,8 +14,7 @@
   ],
   "target_package": "metaRNASeq",
   "target_package_recorded": false,
-  "biocversion_in_lock": false,
-  "bioc_source_tagged": false,
+  "metarnaseq_source_open_network": null,
   "renv_lock_written": true,
   "notes": ""
 }

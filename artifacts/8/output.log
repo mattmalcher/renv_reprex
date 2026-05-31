@@ -1,13 +1,6 @@
 [run_scenario 8] Running 00_env_diagnostics...
 
-> `%||%` <- function(x, y) if (is.null(x) || (length(x) == 
-+     1 && is.na(x))) y else x
-
-> scenario <- Sys.getenv("SCENARIO", "unknown")
-
-> out_dir <- file.path("/artifacts", scenario)
-
-> dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+> source("/scripts/_common.R")
 
 > cat("=== 00_env_diagnostics ===\n")
 === 00_env_diagnostics ===
@@ -79,15 +72,14 @@ PPM reachable: TRUE
 > cat("Bioconductor reachable:", info$bioc_access, "\n")
 Bioconductor reachable: FALSE 
 
-> sink(file.path(out_dir, "session-info.txt"))
+> write_session_info()
 
 > jsonlite_ok <- requireNamespace("jsonlite", quietly = TRUE)
 
 > if (!jsonlite_ok) install.packages("jsonlite", repos = ppm_url, 
 +     quiet = TRUE)
 
-> writeLines(jsonlite::toJSON(info, auto_unbox = TRUE, 
-+     pretty = TRUE), file.path(out_dir, "env_diagnostics.json"))
+> write_json(info, "env_diagnostics.json")
 
 > cat("Wrote env_diagnostics.json, session-info.txt\n\nDone.\n")
 Wrote env_diagnostics.json, session-info.txt
@@ -96,23 +88,53 @@ Done.
 Warning message:
 In system2("curl", args, stdout = TRUE, stderr = FALSE) :
   running command ''curl' -s -o /dev/null -w %{http_code} --connect-timeout 10 --max-time 10 https://bioconductor.org 2>/dev/null' had status 7 and error message 'Function not implemented'
-[run_scenario 8] Running 15_setup_pkg_project...
+[run_scenario 8] Running 16_install_project_deps...
+
+> source("/scripts/_common.R")
 
 > fixture <- Sys.getenv("FIXTURE", "cranlike-with-biocviews")
 
-> src <- file.path("/fixtures", fixture)
+> cat("=== 16_install_project_deps ===\n")
+=== 16_install_project_deps ===
 
-> cat("=== 15_setup_pkg_project ===\n")
-=== 15_setup_pkg_project ===
+> cat("Scenario:", scenario, "\n")
+Scenario: 8 
 
 > cat("Fixture (used as the project package):", fixture, 
 +     "\n\n")
 Fixture (used as the project package): cranlike-with-biocviews 
 
 
-> for (item in list.files(src, full.names = TRUE)) {
-+     file.copy(item, ".", recursive = TRUE, overwrite = TRUE)
-+ }
+> library(renv)
+
+Attaching package: ‘renv’
+
+The following objects are masked from ‘package:stats’:
+
+    embed, update
+
+The following objects are masked from ‘package:utils’:
+
+    history, upgrade
+
+The following objects are masked from ‘package:base’:
+
+    autoload, load, remove, use
+
+
+> library(jsonlite)
+
+> src <- file.path("/fixtures", fixture)
+
+Attaching package: ‘jsonlite’
+
+The following object is masked _by_ ‘.GlobalEnv’:
+
+    write_json
+
+
+> for (item in list.files(src, full.names = TRUE)) file.copy(item, 
++     ".", recursive = TRUE, overwrite = TRUE)
 
 > cat("Project now contains:\n")
 Project now contains:
@@ -141,25 +163,8 @@ License: MIT
 Encoding: UTF-8 
 
 
-> library(renv)
-
-Attaching package: ‘renv’
-
-The following objects are masked from ‘package:stats’:
-
-    embed, update
-
-The following objects are masked from ‘package:utils’:
-
-    history, upgrade
-
-The following objects are masked from ‘package:base’:
-
-    autoload, load, remove, use
-
-
-> cat("renv::init(bare = TRUE)  # do not auto-install deps; isolate the failure to snapshot\n\n")
-renv::init(bare = TRUE)  # do not auto-install deps; isolate the failure to snapshot
+> cat("renv::init(bare = TRUE)  # do not auto-install deps; isolate the failure to install\n\n")
+renv::init(bare = TRUE)  # do not auto-install deps; isolate the failure to install
 
 
 > renv::init(bare = TRUE, restart = FALSE)
@@ -167,47 +172,8 @@ renv::init(bare = TRUE)  # do not auto-install deps; isolate the failure to snap
 
 - The project is out-of-sync -- use `renv::status()` for details.
 
-> cat("\nDone.\n")
+> cat("\nRunning renv::dependencies() on the project...\n")
 
-Done.
-[run_scenario 8] Running 16_install_project_deps...
-- The project is out-of-sync -- use `renv::status()` for details.
-
-> `%||%` <- function(x, y) if (is.null(x)) y else x
-
-> scenario <- Sys.getenv("SCENARIO", "8")
-
-> out_dir <- file.path("/artifacts", scenario)
-
-> dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-
-> cat("=== 16_install_project_deps ===\n")
-=== 16_install_project_deps ===
-
-> cat("Scenario:", scenario, "\n\n")
-Scenario: 8 
-
-
-> library(renv)
-
-Attaching package: ‘renv’
-
-The following objects are masked from ‘package:stats’:
-
-    embed, update
-
-The following objects are masked from ‘package:utils’:
-
-    history, upgrade
-
-The following objects are masked from ‘package:base’:
-
-    autoload, load, remove, use
-
-
-> library(jsonlite)
-
-> cat("Running renv::dependencies() on the project...\n")
 Running renv::dependencies() on the project...
 
 > deps <- tryCatch(renv::dependencies(progress = FALSE, 
@@ -264,13 +230,13 @@ The following package(s) will be installed:
 These packages will be installed into "~/.cache/R/renv/library/project-20bde257/linux-ubuntu-noble/R-4.4/x86_64-pc-linux-gnu".
 
 # Downloading packages -------------------------------------------------------
-[?25l  (0/1) Downloading: BiocManager                                                                                                                                [32m✔[0m BiocManager 1.30.27                      [666 kB in 0.65s]
+[?25l  (0/1) Downloading: BiocManager                                                                                                                                [32m✔[0m BiocManager 1.30.27                      [666 kB in 0.58s]
                                                                                 [31m✖[0m BiocVersion                             
-Successfully downloaded 1 package in 0.77 seconds.
+Successfully downloaded 1 package in 0.73 seconds.
 
 # Installing packages --------------------------------------------------------
                                                                                 [32m✔[0m BiocManager 1.30.27                      [installed binary]
-Successfully installed 1 package in 0.16 seconds.
+Successfully installed 1 package in 0.15 seconds.
 
 The following package(s) were not installed successfully:
 - [BiocVersion]: failed to download
@@ -304,28 +270,20 @@ Install status: failure
 +     else NA
 + }
 
-> writeLines(toJSON(list(operation = "renv::install()", 
-+     result = if (is.null(install_error)) "ok (but dependency missing)" else paste0("error: ", 
-+         install_error), biocmanager_discovered = biocmanager_found, 
+> write_json(list(operation = "renv::install()", result = if (is.null(install_error)) "ok (but dependency missing)" else paste0("error: ", 
++     install_error), biocmanager_discovered = biocmanager_found, 
 +     biocversion_discovered = biocversion_found, snapshot_status = status, 
 +     snapshot_error_classification = classify(install_error, install_warnings), 
 +     snapshot_warnings = install_warnings, renv_lock_written = file.exists("renv.lock"), 
-+     target_package = "BiocVersion", target_package_recorded = biocversion_installed, 
-+     biocversion_in_lock = FALSE, bioc_source_tagged = FALSE), 
-+     auto_unbox = TRUE, pretty = TRUE, na = "null"), file.path(out_dir, 
-+     "snapshot_result.json"))
++     target_package = "BiocVersion", target_package_recorded = biocversion_installed), 
++     "snapshot_result.json")
 
 > cat("\nDone.\n")
 
 Done.
 [run_scenario 8] Running 70_collect_artifacts (no-init-file)...
 
-> `%||%` <- function(x, y) if (is.null(x) || (length(x) == 
-+     1 && is.na(x))) y else x
-
-> scenario <- Sys.getenv("SCENARIO", "unknown")
-
-> artifacts_root <- "/artifacts"
+> source("/scripts/_common.R")
 
 > cat("=== 70_collect_artifacts ===\n")
 === 70_collect_artifacts ===
@@ -338,8 +296,6 @@ Scenario: 8
 +     tryCatch(jsonlite::fromJSON(path, simplifyVector = FALSE), 
 +         error = function(e) list())
 + }
-
-> out_dir <- file.path(artifacts_root, scenario)
 
 > for (src in c("/project/renv.lock", "/project/renv/settings.json")) {
 +     if (file.exists(src)) {
@@ -358,6 +314,7 @@ Saved /project/renv/settings.json → renv-settings.json
 +     "2", "3"))) {
 +     env <- read_json_safe(file.path(out_dir, "env_diagnostics.json"))
 +     snap <- read_json_safe(file.path(out_dir, "snapshot_result.json"))
++     srcinf <- read_json_safe(file.path(out_dir, "source_inference.json"))
 +     deps_csv <- file.path(out_dir, "discovered-dependencies.csv")
 +     biocmanager_found <- FALSE
 +     biocversion_found <- FALSE
@@ -385,13 +342,12 @@ Saved /project/renv/settings.json → renv-settings.json
 +             NA, snapshot_warnings = snap$snapshot_warnings %||% 
 +             NA, target_package = snap$target_package %||% NA, 
 +         target_package_recorded = snap$target_package_recorded %||% 
-+             NA, biocversion_in_lock = snap$biocversion_in_lock %||% 
-+             NA, bioc_source_tagged = snap$bioc_source_tagged %||% 
++             NA, metarnaseq_source_open_network = srcinf$metarnaseq_source_open_network %||% 
 +             NA, renv_lock_written = lock_written, notes = "")
-+     writeLines(jsonlite::toJSON(result, auto_unbox = TRUE, pretty = TRUE, 
-+         na = "null"), result_path)
++     write_json(result, "result.json")
 +     cat("Wrote result.json\n")
-+     for (f in c("snapshot_result.json", "env_diagnostics.json")) {
++     for (f in c("snapshot_result.json", "env_diagnostics.json", 
++         "source_inference.json")) {
 +         p <- file.path(out_dir, f)
 +         if (file.exists(p)) 
 +             file.remove(p)
@@ -420,8 +376,7 @@ Outcome:
   "snapshot_warnings": [],
   "target_package": "BiocVersion",
   "target_package_recorded": false,
-  "biocversion_in_lock": false,
-  "bioc_source_tagged": false,
+  "metarnaseq_source_open_network": null,
   "renv_lock_written": false,
   "notes": ""
 } 

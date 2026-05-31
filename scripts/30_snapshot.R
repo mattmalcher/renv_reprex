@@ -1,9 +1,5 @@
-`%||%` <- function(x, y) if (is.null(x)) y else x
-
-scenario <- Sys.getenv("SCENARIO", "unknown")
-target   <- Sys.getenv("PACKAGE", "")          # package whose presence in the lock = success
-out_dir  <- file.path("/artifacts", scenario)
-dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+source("/scripts/_common.R")
+target <- Sys.getenv("PACKAGE", "")            # package whose presence in the lock = success
 
 cat("=== 30_snapshot ===\n")
 cat("Scenario:", scenario, "\n")
@@ -69,27 +65,19 @@ withCallingHandlers(
 
 # Inspect the resulting lockfile: the real test of success is whether the
 # project's target package was actually recorded.
-recorded_packages   <- character()
-biocversion_in_lock <- FALSE
-bioc_source_tagged  <- FALSE      # any record with Source == "Bioconductor"?
+recorded_packages <- character()
 if (file.exists("renv.lock")) {
   lock <- tryCatch(jsonlite::fromJSON("renv.lock", simplifyVector = FALSE),
                    error = function(e) NULL)
-  if (!is.null(lock) && !is.null(lock$Packages)) {
-    recorded_packages   <- names(lock$Packages)
-    biocversion_in_lock <- "BiocVersion" %in% recorded_packages
-    srcs <- vapply(lock$Packages, function(p) p$Source %||% "", character(1))
-    bioc_source_tagged  <- any(srcs == "Bioconductor")
-  }
+  if (!is.null(lock) && !is.null(lock$Packages))
+    recorded_packages <- names(lock$Packages)
   file.copy("renv.lock", file.path(out_dir, "renv.lock"), overwrite = TRUE)
 }
 target_recorded <- nzchar(target) && target %in% recorded_packages
 
 cat("\n--- lockfile assessment ---\n")
 cat("Recorded packages:", if (length(recorded_packages)) paste(recorded_packages, collapse = ", ") else "(none)", "\n")
-cat("Target recorded:", if (nzchar(target)) target_recorded else NA, "\n")
-cat("BiocVersion in lock:", biocversion_in_lock, "\n")
-cat("A package tagged Source=Bioconductor:", bioc_source_tagged, "\n\n")
+cat("Target recorded:", if (nzchar(target)) target_recorded else NA, "\n\n")
 
 if (file.exists("renv/settings.json")) {
   file.copy("renv/settings.json", file.path(out_dir, "renv-settings.json"), overwrite = TRUE)
@@ -120,21 +108,16 @@ classify_snap_error <- function(msg) {
 
 cat("Snapshot status:", snap_status, "\n")
 
-writeLines(
-  toJSON(list(
-    result                        = if (is.null(snap_error)) "ok" else paste0("error: ", snap_error),
-    biocmanager_discovered        = biocmanager_found,
-    biocversion_discovered        = biocversion_found,
-    snapshot_status               = snap_status,
-    snapshot_error_classification = classify_snap_error(snap_error),
-    snapshot_warnings             = snap_warnings,
-    renv_lock_written             = file.exists("renv.lock"),
-    target_package                = target,
-    target_package_recorded       = if (nzchar(target)) target_recorded else NA,
-    biocversion_in_lock           = biocversion_in_lock,
-    bioc_source_tagged            = bioc_source_tagged
-  ), auto_unbox = TRUE, pretty = TRUE, na = "null"),
-  file.path(out_dir, "snapshot_result.json")
-)
+write_json(list(
+  result                        = if (is.null(snap_error)) "ok" else paste0("error: ", snap_error),
+  biocmanager_discovered        = biocmanager_found,
+  biocversion_discovered        = biocversion_found,
+  snapshot_status               = snap_status,
+  snapshot_error_classification = classify_snap_error(snap_error),
+  snapshot_warnings             = snap_warnings,
+  renv_lock_written             = file.exists("renv.lock"),
+  target_package                = target,
+  target_package_recorded       = if (nzchar(target)) target_recorded else NA
+), "snapshot_result.json")
 
 cat("\nDone.\n")

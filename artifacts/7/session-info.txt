@@ -1,5 +1,3 @@
-
-> print(sessionInfo())
 R version 4.4.2 (2024-10-31)
 Platform: x86_64-pc-linux-gnu
 Running under: Ubuntu 24.04.1 LTS
@@ -25,5 +23,3 @@ attached base packages:
 loaded via a namespace (and not attached):
 [1] BiocManager_1.30.27 compiler_4.4.2      tools_4.4.2        
 [4] renv_1.2.3         
-
-> sink()

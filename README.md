@@ -52,20 +52,32 @@ artifacts/
 
 ## Scenario matrix
 
+**Core proof** — the controlled demonstration of the thesis. Each path is shown with a
+single-variable pair: discovery with/without `biocViews` (1 vs 2), and snapshot with
+`biocViews` present vs stripped (4 vs 5). Scenario 8 is the second, install-time path.
+
 | # | Description | Operation | Network | biocViews | Result |
 |---|-------------|-----------|---------|-----------|--------|
 | **1** | Discovery — fixture without biocViews | `dependencies()` | open | absent | no injection |
 | **2** | Discovery — fixture with biocViews | `dependencies()` | open | present | injects BiocManager + **BiocVersion** |
-| **3** | Real CRAN package `recipes` carries biocViews | inspect | open | present | metadata only |
 | **4** | **Path B**: depends on `metaRNASeq` (biocViews) | `snapshot()` | Bioc blocked | present | **fails** |
 | **5** | **Control**: `metaRNASeq`, biocViews **stripped** | `snapshot()` | Bioc blocked | stripped | **succeeds** |
+| **8** | **Path A**: project *is* a package with biocViews | `install()` | Bioc blocked | present | **fails** |
+
+**Supporting / workarounds attempted** — real-world motivation (3) and proof that the two
+common Bioconductor-side mitigations do *not* resolve it (6, 7).
+
+| # | Description | Operation | Network | biocViews | Result |
+|---|-------------|-----------|---------|-----------|--------|
+| **3** | Real CRAN package `genetics` carries biocViews | inspect | open | present | metadata only |
 | **6** | Workaround: `bioconductor.version("3.20")` | `snapshot()` | Bioc blocked | present | **fails** |
 | **7** | Workaround: `BioCsoft` → PPM Bioconductor mirror | `snapshot()` | Bioc blocked | present | **fails** |
-| **8** | **Path A**: project *is* a package with biocViews | `install()` | Bioc blocked | present | **fails** |
 
 Scenarios 4–7 use a two-phase Docker approach: the package is installed via
 `renv::install()` with an open network (so renv records CRAN/PPM as the source), then the
-operation under test runs in a second container with Bioconductor blocked.
+operation under test runs in a second container with Bioconductor blocked. Scenario 4's
+install phase additionally calls renv's own source-inference function on the installed
+package to capture the `Source = "Bioconductor"` misclassification directly (see §3).
 
 ---
 
@@ -79,6 +91,8 @@ completion, and then judges the outcome on **what actually lands in the lockfile
 
 - **failure** — the operation raised an error.
 - **incomplete** — no error, but the project's target package was *not* recorded/installed.
+  (A distinct outcome the harness can report; none of the scenarios here produce it — each is
+  either a clean failure or a clean success.)
 - **success** — the target package was recorded (snapshot) or installed (install).
 
 See `scripts/30_snapshot.R` and `scripts/16_install_project_deps.R`.
@@ -146,12 +160,22 @@ Scenario 2's discovered-dependencies CSV shows both packages tagged `Type = "Bio
 
 Evidence: `artifacts/1/discovered-dependencies.csv`, `artifacts/2/discovered-dependencies.csv`.
 
-A real CRAN package carries the same trigger: scenario 3 installs `recipes` from PPM and
-shows it has `biocViews: mixOmics` while `Repository: RSPM`
-(`artifacts/3/recipes_DESCRIPTION.txt`). `metaRNASeq`
+Real CRAN packages carry the same trigger: scenario 3 installs `genetics` from PPM and shows
+it has `biocViews: Genetics` while `Repository: RSPM`
+(`artifacts/3/cran-pkg_DESCRIPTION.txt`). It is not exotic — `find_cran_biocviews.R` lists a
+dozen-plus ordinary CRAN packages whose DESCRIPTION carries `biocViews`. `metaRNASeq`
 (`biocViews: HighThroughputSequencing, RNAseq, DifferentialExpression`) is used in
 scenarios 4–7 as the snapshot trigger because it is a CRAN package with zero compiled
-dependencies that installs quickly from PPM; `find_cran_biocviews.R` was used to find it.
+dependencies that installs quickly from PPM; the same helper found it.
+
+> **Note — `recipes` and why this still matters for reproducibility.** The package that
+> originally surfaced this issue was `recipes` (it carried `biocViews: mixOmics`). Current
+> `recipes` (≥ 1.3.x) has **dropped** the `biocViews` field, so the latest version no longer
+> trips the bug — which is why scenario 3 now uses `genetics`. But renv exists to *reproduce*
+> environments, and reproducing an older environment means installing an **older** `recipes`,
+> whose DESCRIPTION **does** still carry `biocViews`. So a CRAN/PPM-only `renv::restore()` of a
+> historical lockfile that pins an older `recipes` will hit exactly this failure. The trigger
+> being removed from the newest release does not make pinned/older installs safe.
 
 ---
 
@@ -178,6 +202,30 @@ validated; no internet connection?
 Removing `biocViews` is sufficient to make the same snapshot, on the same package, over the
 same blocked network, succeed. Evidence: `artifacts/4/result.json`, `artifacts/5/result.json`,
 and the two `renv.lock` files (`metaRNASeq` present only in scenario 5).
+
+### The misclassification, observed directly (scenario 4)
+
+The inference is never visible in a lockfile artifact, because snapshot aborts during
+pre-flight validation before any record is written — under the blocked network on Bioconductor
+*version validation*, and even with the network open on the (uninstalled) `BiocVersion`
+dependency that `metaRNASeq`'s `biocViews` injects. So scenario 4's install phase calls the
+misclassifying function in isolation: `renv:::renv_snapshot_description_source()`
+(`snapshot.R:924`, the `biocViews` branch at `:940`) is exactly what snapshot uses to decide
+each package's recorded `Source`. Handed the installed `metaRNASeq` DESCRIPTION (`Repository:
+RSPM`), it returns:
+
+```json
+{
+  "Package": "metaRNASeq",
+  "Source": "Bioconductor",
+  "Repository": "RSPM",
+  "biocViews": "HighThroughputSequencing, RNAseq, DifferentialExpression"
+}
+```
+
+`Source = "Bioconductor"` on a package whose `Repository` is `RSPM` *is* the bug, isolated to
+the single function responsible. Evidence: `artifacts/4/lock-source-inference.json`, and
+`metarnaseq_source_open_network: "Bioconductor"` in `artifacts/4/result.json`.
 
 ### Path B call stack (scenario 4)
 
@@ -317,13 +365,15 @@ artifacts/<N>/
   session-info.txt             # R sessionInfo()
   renv.lock                    # lockfile if the operation produced one (scenarios 4–8)
   renv-settings.json           # renv project settings if written (scenarios 4–8)
-  recipes_DESCRIPTION.txt      # package metadata (scenario 3 only)
+  lock-source-inference.json   # metaRNASeq lock record, Source=Bioconductor (scenario 4 only)
+  cran-pkg_DESCRIPTION.txt     # CRAN package metadata, e.g. genetics (scenario 3 only)
 ```
 
 `result.json` fields: `scenario`, `operation`, `ppm_reachable`, `bioconductor_reachable`,
 `biocviews_present`, `biocmanager_discovered`, `biocversion_discovered`, `snapshot_status`,
 `snapshot_error_classification`, `snapshot_warnings`, `target_package`,
-`target_package_recorded`, `biocversion_in_lock`, `bioc_source_tagged`, `renv_lock_written`.
+`target_package_recorded`, `metarnaseq_source_open_network` (scenario 4 only — the `Source`
+renv records for `metaRNASeq` when a snapshot is allowed to complete), `renv_lock_written`.
 
 ---
 
@@ -331,5 +381,6 @@ artifacts/<N>/
 
 - renv issue [#2149](https://github.com/rstudio/renv/issues/2149) fixed *empty* biocViews
   but not non-empty ones
-- `recipes` (CRAN) carries `biocViews: mixOmics` — a real-world trigger
+- `genetics` (CRAN) carries `biocViews: Genetics` — a real-world trigger; `find_cran_biocviews.R`
+  lists many more ordinary CRAN packages with a `biocViews` field
 - `BiocVersion` is Bioconductor-only and is not mirrored by default on CRAN-only PPM

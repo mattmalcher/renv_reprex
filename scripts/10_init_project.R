@@ -1,6 +1,4 @@
-scenario <- Sys.getenv("SCENARIO", "unknown")
-out_dir  <- file.path("/artifacts", scenario)
-dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+source("/scripts/_common.R")
 
 cat("=== 10_init_project ===\n")
 cat("Scenario:", scenario, "\n\n")

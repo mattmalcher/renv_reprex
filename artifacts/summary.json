@@ -2,38 +2,38 @@
   "1": {
     "scenario": "1",
     "ppm_reachable": true,
-    "bioconductor_reachable": {},
+    "bioconductor_reachable": null,
     "biocviews_present": false,
     "biocmanager_discovered": false,
     "biocversion_discovered": false,
     "snapshot_status": "not_run",
-    "snapshot_error_classification": {},
+    "snapshot_error_classification": null,
     "renv_lock_written": false,
     "notes": "Dependency discovery only. Fixture: cranlike-no-biocviews. biocViews value: ''."
   },
   "2": {
     "scenario": "2",
     "ppm_reachable": true,
-    "bioconductor_reachable": {},
+    "bioconductor_reachable": null,
     "biocviews_present": true,
     "biocmanager_discovered": true,
     "biocversion_discovered": true,
     "snapshot_status": "not_run",
-    "snapshot_error_classification": {},
+    "snapshot_error_classification": null,
     "renv_lock_written": false,
     "notes": "Dependency discovery only. Fixture: cranlike-with-biocviews. biocViews value: 'Software'."
   },
   "3": {
     "scenario": "3",
     "ppm_reachable": true,
-    "bioconductor_reachable": {},
+    "bioconductor_reachable": null,
     "biocviews_present": true,
-    "biocmanager_discovered": {},
-    "biocversion_discovered": {},
+    "biocmanager_discovered": null,
+    "biocversion_discovered": null,
     "snapshot_status": "not_run",
-    "snapshot_error_classification": {},
+    "snapshot_error_classification": null,
     "renv_lock_written": false,
-    "notes": "recipes repository: 'RSPM'. biocViews: 'mixOmics'. Key point: recipes is installed from CRAN/PPM but has non-empty biocViews."
+    "notes": "genetics repository: 'RSPM'. biocViews: 'Genetics'. Key point: genetics is installed from CRAN/PPM but has non-empty biocViews."
   },
   "4": {
     "scenario": "4",
@@ -48,8 +48,7 @@
     "snapshot_warnings": [],
     "target_package": "metaRNASeq",
     "target_package_recorded": false,
-    "biocversion_in_lock": false,
-    "bioc_source_tagged": false,
+    "metarnaseq_source_open_network": "Bioconductor",
     "renv_lock_written": true,
     "notes": ""
   },
@@ -62,12 +61,11 @@
     "biocmanager_discovered": false,
     "biocversion_discovered": false,
     "snapshot_status": "success",
-    "snapshot_error_classification": {},
+    "snapshot_error_classification": null,
     "snapshot_warnings": [],
     "target_package": "metaRNASeq",
     "target_package_recorded": true,
-    "biocversion_in_lock": false,
-    "bioc_source_tagged": false,
+    "metarnaseq_source_open_network": null,
     "renv_lock_written": true,
     "notes": ""
   },
@@ -87,8 +85,7 @@
     ],
     "target_package": "metaRNASeq",
     "target_package_recorded": false,
-    "biocversion_in_lock": false,
-    "bioc_source_tagged": false,
+    "metarnaseq_source_open_network": null,
     "renv_lock_written": true,
     "notes": ""
   },
@@ -105,8 +102,7 @@
     "snapshot_warnings": [],
     "target_package": "metaRNASeq",
     "target_package_recorded": false,
-    "biocversion_in_lock": false,
-    "bioc_source_tagged": false,
+    "metarnaseq_source_open_network": null,
     "renv_lock_written": true,
     "notes": ""
   },
@@ -123,8 +119,7 @@
     "snapshot_warnings": [],
     "target_package": "BiocVersion",
     "target_package_recorded": false,
-    "biocversion_in_lock": false,
-    "bioc_source_tagged": false,
+    "metarnaseq_source_open_network": null,
     "renv_lock_written": false,
     "notes": ""
   }

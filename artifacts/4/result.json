@@ -11,8 +11,7 @@
   "snapshot_warnings": [],
   "target_package": "metaRNASeq",
   "target_package_recorded": false,
-  "biocversion_in_lock": false,
-  "bioc_source_tagged": false,
+  "metarnaseq_source_open_network": "Bioconductor",
   "renv_lock_written": true,
   "notes": ""
 }

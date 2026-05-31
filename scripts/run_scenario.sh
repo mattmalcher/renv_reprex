@@ -73,9 +73,11 @@ case "$SCENARIO" in
     ;;
 
   3)
-    # Real-world trigger: recipes is CRAN-installed but has non-empty biocViews
+    # Real-world trigger: an ordinary CRAN package (genetics) installed from PPM
+    # carries a non-empty biocViews field while Repository = RSPM.
     run_r /scripts/00_env_diagnostics.R
-    run_r /scripts/03_inspect_recipes.R
+    export PACKAGE=genetics
+    run_r /scripts/03_inspect_cran_pkg.R
     run_r_noenv /scripts/70_collect_artifacts.R
     ;;
 
@@ -90,6 +92,9 @@ case "$SCENARIO" in
       export PACKAGE=metaRNASeq
       run_r /scripts/10_init_project.R
       run_r /scripts/20_install_pkg.R
+      # Capture the Source renv's own inference function assigns to the installed
+      # metaRNASeq (Repository=RSPM) — the observable proof of Source=Bioconductor.
+      run_r /scripts/35_capture_source_inference.R
     elif [ "$PHASE" = "snapshot" ]; then
       export PACKAGE=metaRNASeq
       run_r /scripts/00_env_diagnostics.R
@@ -118,8 +123,8 @@ case "$SCENARIO" in
     ;;
 
   6)
-    # Workaround: renv::settings$bioconductor.version("3.20")
-    # bioconductor.version is set in 10_init_project.R when SCENARIO=6
+    # Workaround: renv::settings$bioconductor.version("3.20"), applied in
+    # 10_init_project.R when SCENARIO=6 (no .Rprofile template needed).
     if [ "$PHASE" = "install" ]; then
       setup_rprofile
       export PACKAGE=metaRNASeq
@@ -154,10 +159,10 @@ case "$SCENARIO" in
     # renv::dependencies() genuinely discovers BiocManager + BiocVersion as implicit
     # dependencies; installing the project's declared dependencies then FAILS because
     # BiocVersion (Bioconductor-only) cannot be downloaded with Bioconductor blocked.
-    # Single-phase (no external package install needed beforehand).
+    # Single-phase: 16_install_project_deps.R does both the setup (make /project the
+    # fixture package + renv::init) and the failing install.
     run_r /scripts/00_env_diagnostics.R
     export FIXTURE=cranlike-with-biocviews
-    run_r /scripts/15_setup_pkg_project.R
     run_r /scripts/16_install_project_deps.R || true
     run_r_noenv /scripts/70_collect_artifacts.R
     ;;

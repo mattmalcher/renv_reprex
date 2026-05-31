@@ -8,5 +8,5 @@
   "snapshot_status": "not_run",
   "snapshot_error_classification": null,
   "renv_lock_written": false,
-  "notes": "recipes repository: 'RSPM'. biocViews: 'mixOmics'. Key point: recipes is installed from CRAN/PPM but has non-empty biocViews."
+  "notes": "genetics repository: 'RSPM'. biocViews: 'Genetics'. Key point: genetics is installed from CRAN/PPM but has non-empty biocViews."
 }

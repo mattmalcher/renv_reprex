@@ -1,7 +1,4 @@
-`%||%` <- function(x, y) if (is.null(x) || (length(x) == 1L && is.na(x))) y else x
-
-scenario       <- Sys.getenv("SCENARIO", "unknown")
-artifacts_root <- "/artifacts"
+source("/scripts/_common.R")
 
 cat("=== 70_collect_artifacts ===\n")
 cat("Scenario:", scenario, "\n\n")
@@ -9,8 +6,6 @@ cat("Scenario:", scenario, "\n\n")
 read_json_safe <- function(path) {
   tryCatch(jsonlite::fromJSON(path, simplifyVector = FALSE), error = function(e) list())
 }
-
-out_dir <- file.path(artifacts_root, scenario)
 
 # Copy renv.lock and renv/settings.json if present in /project
 for (src in c("/project/renv.lock", "/project/renv/settings.json")) {
@@ -28,6 +23,7 @@ result_path <- file.path(out_dir, "result.json")
 if (!file.exists(result_path) || !(scenario %in% c("1", "2", "3"))) {
   env  <- read_json_safe(file.path(out_dir, "env_diagnostics.json"))
   snap <- read_json_safe(file.path(out_dir, "snapshot_result.json"))
+  srcinf <- read_json_safe(file.path(out_dir, "source_inference.json"))
 
   deps_csv <- file.path(out_dir, "discovered-dependencies.csv")
   biocmanager_found <- FALSE
@@ -65,17 +61,17 @@ if (!file.exists(result_path) || !(scenario %in% c("1", "2", "3"))) {
     snapshot_warnings             = snap$snapshot_warnings %||% NA,
     target_package                = snap$target_package %||% NA,
     target_package_recorded       = snap$target_package_recorded %||% NA,
-    biocversion_in_lock           = snap$biocversion_in_lock %||% NA,
-    bioc_source_tagged            = snap$bioc_source_tagged %||% NA,
+    # Path B open-network proof (scenario 4): the Source renv records for the
+    # PPM/RSPM-installed metaRNASeq when a snapshot is allowed to complete.
+    metarnaseq_source_open_network = srcinf$metarnaseq_source_open_network %||% NA,
     renv_lock_written             = lock_written,
     notes                         = ""
   )
-  writeLines(jsonlite::toJSON(result, auto_unbox = TRUE, pretty = TRUE, na = "null"),
-             result_path)
+  write_json(result, "result.json")
   cat("Wrote result.json\n")
 
   # Clean up intermediate files now that result.json captures their content
-  for (f in c("snapshot_result.json", "env_diagnostics.json")) {
+  for (f in c("snapshot_result.json", "env_diagnostics.json", "source_inference.json")) {
     p <- file.path(out_dir, f)
     if (file.exists(p)) file.remove(p)
   }

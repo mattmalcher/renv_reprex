@@ -1,8 +1,5 @@
-`%||%` <- function(x, y) if (is.null(x)) y else x
-scenario <- Sys.getenv("SCENARIO", "unknown")
-fixture  <- Sys.getenv("FIXTURE", "cranlike-with-biocviews")
-out_dir  <- file.path("/artifacts", scenario)
-dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+source("/scripts/_common.R")
+fixture <- Sys.getenv("FIXTURE", "cranlike-with-biocviews")
 
 cat("=== 01_discover_deps ===\n")
 cat("Scenario:", scenario, "\n")
@@ -54,7 +51,7 @@ cat("BiocVersion discovered:", biocversion_found, "\n")
 cat("Bioconductor dependency type present:", bioc_type_found, "\n")
 
 # Session info and repos
-sink(file.path(out_dir, "session-info.txt")); print(sessionInfo()); sink()
+write_session_info()
 
 result <- list(
   scenario                    = scenario,
@@ -69,6 +66,5 @@ result <- list(
   notes = paste0("Dependency discovery only. Fixture: ", fixture,
                  ". biocViews value: '", biocviews_value, "'.")
 )
-writeLines(toJSON(result, auto_unbox = TRUE, pretty = TRUE, na = "null"),
-           file.path(out_dir, "result.json"))
+write_json(result, "result.json")
 cat("Wrote result.json\n\nDone.\n")

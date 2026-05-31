@@ -41,6 +41,33 @@ build_image() {
   echo "=== Build complete ==="
 }
 
+# Run one `docker …` invocation under a timeout watchdog, teeing to a log file.
+#   run_with_watchdog <log_file> <append:0|1> -- <docker args…>
+# Returns the container's exit status (or non-zero if the watchdog killed it).
+run_with_watchdog() {
+  local log_file="$1"; local append="$2"; shift 2
+  [ "${1:-}" = "--" ] && shift
+  local tee_flag=(); [ "$append" = "1" ] && tee_flag=(-a)
+
+  $DOCKER "$@" > >(tee "${tee_flag[@]}" "$log_file") 2>&1 &
+  local pid=$!
+  (sleep $TIMEOUT && kill $pid 2>/dev/null && \
+    echo "TIMEOUT: exceeded ${TIMEOUT}s" >> "$log_file") &
+  local watchdog=$!
+  local rc=0
+  wait $pid 2>/dev/null || rc=$?
+  kill $watchdog 2>/dev/null || true
+  return $rc
+}
+
+# Delete a (possibly root-owned) host directory's contents via a throwaway container.
+clean_project_dir() {
+  local dir="$1"
+  [ -d "$dir" ] || return 0
+  $DOCKER run --rm -v "${dir}:/toclean" --entrypoint sh "$IMAGE" \
+    -c "find /toclean -mindepth 1 -delete" 2>/dev/null || true
+}
+
 # Single-phase run: entire scenario in one container with the given docker args.
 run_scenario() {
   local name="$1"; shift
@@ -51,24 +78,11 @@ run_scenario() {
   echo ""
   echo "━━━ Scenario ${name} ━━━"
 
-  $DOCKER run --rm \
-    -v "${ARTIFACTS}:/artifacts" \
-    -e SCENARIO="$name" \
-    "${extra_args[@]}" \
-    "$IMAGE" "$name" \
-    > >(tee "${log_dir}/output.log") \
-    2>&1 &
-  local pid=$!
-
-  (sleep $TIMEOUT && kill $pid 2>/dev/null && \
-    echo "TIMEOUT: Scenario ${name} exceeded ${TIMEOUT}s" >> "${log_dir}/output.log") &
-  local watchdog=$!
-
-  if wait $pid 2>/dev/null; then
-    kill $watchdog 2>/dev/null || true
+  if run_with_watchdog "${log_dir}/output.log" 0 -- \
+      run --rm -v "${ARTIFACTS}:/artifacts" -e SCENARIO="$name" \
+      "${extra_args[@]}" "$IMAGE" "$name"; then
     echo "Scenario ${name}: completed"
   else
-    kill $watchdog 2>/dev/null || true
     echo "Scenario ${name}: FAILED or TIMED OUT (see ${log_dir}/output.log)"
   fi
 }
@@ -86,54 +100,24 @@ run_two_phase_scenario() {
   echo ""
   echo "━━━ Scenario ${name} ━━━"
 
-  # Clean any stale project directory from a prior run (files may be root-owned)
-  if [ -d "$project_dir" ]; then
-    $DOCKER run --rm -v "${project_dir}:/toclean" --entrypoint sh "$IMAGE" \
-      -c "find /toclean -mindepth 1 -delete" 2>/dev/null || true
-  fi
+  clean_project_dir "$project_dir"   # clear any stale (root-owned) state from a prior run
   mkdir -p "$project_dir"
 
   # ── Phase 1: install (open network) ────────────────────────────────────────
-  $DOCKER run --rm \
-    -v "${ARTIFACTS}:/artifacts" \
-    -v "${project_dir}:/project" \
-    -e SCENARIO="$name" \
-    -e PHASE=install \
-    "$IMAGE" "$name" \
-    > >(tee "${log_dir}/output.log") \
-    2>&1 &
-  local pid=$!
-  (sleep $TIMEOUT && kill $pid 2>/dev/null && \
-    echo "TIMEOUT: install phase exceeded ${TIMEOUT}s" >> "${log_dir}/output.log") &
-  local watchdog=$!
-  wait $pid 2>/dev/null || true
-  kill $watchdog 2>/dev/null || true
+  run_with_watchdog "${log_dir}/output.log" 0 -- \
+    run --rm -v "${ARTIFACTS}:/artifacts" -v "${project_dir}:/project" \
+    -e SCENARIO="$name" -e PHASE=install "$IMAGE" "$name" || true
 
   # ── Phase 2: snapshot (blocked network) ────────────────────────────────────
-  $DOCKER run --rm \
-    -v "${ARTIFACTS}:/artifacts" \
-    -v "${project_dir}:/project" \
-    -e SCENARIO="$name" \
-    -e PHASE=snapshot \
-    "${snapshot_args[@]}" \
-    "$IMAGE" "$name" \
-    > >(tee -a "${log_dir}/output.log") \
-    2>&1 &
-  local pid=$!
-  (sleep $TIMEOUT && kill $pid 2>/dev/null && \
-    echo "TIMEOUT: snapshot phase exceeded ${TIMEOUT}s" >> "${log_dir}/output.log") &
-  local watchdog=$!
-  if wait $pid 2>/dev/null; then
-    kill $watchdog 2>/dev/null || true
+  if run_with_watchdog "${log_dir}/output.log" 1 -- \
+      run --rm -v "${ARTIFACTS}:/artifacts" -v "${project_dir}:/project" \
+      -e SCENARIO="$name" -e PHASE=snapshot "${snapshot_args[@]}" "$IMAGE" "$name"; then
     echo "Scenario ${name}: completed"
   else
-    kill $watchdog 2>/dev/null || true
     echo "Scenario ${name}: FAILED or TIMED OUT (see ${log_dir}/output.log)"
   fi
 
-  # Clean up root-owned project directory
-  $DOCKER run --rm -v "${project_dir}:/toclean" --entrypoint sh "$IMAGE" \
-    -c "find /toclean -mindepth 1 -delete" 2>/dev/null || true
+  clean_project_dir "$project_dir"
   rmdir "$project_dir" 2>/dev/null || true
 }
 
@@ -176,7 +160,7 @@ for s in "${RUN_SCENARIOS[@]}"; do
       run_scenario 2
       ;;
     3)
-      # Real-world package inspection (recipes); network open to install from PPM
+      # Real-world package inspection (genetics); network open to install from PPM
       run_scenario 3
       ;;
     4)
@@ -221,7 +205,9 @@ $DOCKER run --rm \
       if (file.exists(p)) fromJSON(p, simplifyVector = FALSE)
       else list(scenario = s, notes = 'not run')
     })
-    writeLines(toJSON(results, auto_unbox = TRUE, pretty = TRUE, na = 'null'),
+    # null='null' so a JSON null read back as R NULL is re-emitted as null,
+    # not as the empty object '{}' that toJSON produces for NULL by default.
+    writeLines(toJSON(results, auto_unbox = TRUE, pretty = TRUE, na = 'null', null = 'null'),
                '/artifacts/summary.json')
     cat('Wrote summary.json\n')
   "
