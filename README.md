@@ -137,9 +137,19 @@ even though its `Repository` is `RSPM`. `renv_snapshot_validate_bioconductor()`
 **scenarios 4, 6 and 7**. Note `BiocVersion` is never *discovered* on this path — the
 failure is purely version validation.
 
+### Which proof section covers which path
+
+| Path | Mechanism | Proof sections | Scenarios |
+|------|-----------|----------------|-----------|
+| **A** | dependency injection → `install()`/`restore()` fail | §2 (discovery), §4 (install) | 1, 2, 8 |
+| **B** | snapshot source inference → `snapshot()` fails | §3 (minimal pair), §5 (workarounds) | 4, 5, 6, 7 |
+
+Scenario 3 (`genetics`) belongs to neither failure — it is path-neutral motivation, showing the
+`biocViews` trigger exists on ordinary CRAN packages and so feeds *both* paths.
+
 ---
 
-## 2. Discovery proof (scenarios 1 & 2)
+## 2. Discovery proof — Path A injection (scenarios 1 & 2)
 
 Two minimal local packages under `fixtures/` differ only in the presence of `biocViews`.
 Scenarios 1 and 2 run `renv::dependencies()` directly on each DESCRIPTION.
@@ -160,10 +170,11 @@ Scenario 2's discovered-dependencies CSV shows both packages tagged `Type = "Bio
 
 Evidence: `artifacts/1/discovered-dependencies.csv`, `artifacts/2/discovered-dependencies.csv`.
 
-Real CRAN packages carry the same trigger: scenario 3 installs `genetics` from PPM and shows
-it has `biocViews: Genetics` while `Repository: RSPM`
-(`artifacts/3/cran-pkg_DESCRIPTION.txt`). It is not exotic — `find_cran_biocviews.R` lists a
-dozen-plus ordinary CRAN packages whose DESCRIPTION carries `biocViews`. `metaRNASeq`
+Real CRAN packages carry the same trigger (this is path-neutral motivation — the trigger feeds
+both paths): scenario 3 installs `genetics` from PPM and shows it has `biocViews: Genetics`
+while `Repository: RSPM` (`artifacts/3/cran-pkg_DESCRIPTION.txt`). It is not exotic —
+`find_cran_biocviews.R` lists a dozen-plus ordinary CRAN packages whose DESCRIPTION carries
+`biocViews`. `metaRNASeq`
 (`biocViews: HighThroughputSequencing, RNAseq, DifferentialExpression`) is used in
 scenarios 4–7 as the snapshot trigger because it is a CRAN package with zero compiled
 dependencies that installs quickly from PPM; the same helper found it.
@@ -179,7 +190,7 @@ dependencies that installs quickly from PPM; the same helper found it.
 
 ---
 
-## 3. Snapshot proof — the minimal pair (scenarios 4 & 5)
+## 3. Snapshot proof — Path B, the minimal pair (scenarios 4 & 5)
 
 Scenarios 4 and 5 are identical in every respect — same package (`metaRNASeq`), same source
 (PPM/RSPM), same two-phase blocked-network snapshot — **except** that scenario 5 strips the
@@ -277,7 +288,7 @@ renv::install()   (same for renv::restore())
 
 ---
 
-## 5. Workarounds do not resolve it (scenarios 6 & 7)
+## 5. Workarounds do not resolve it — Path B (scenarios 6 & 7)
 
 Both common mitigations were run with the honest measurement above; **both still fail**.
 
