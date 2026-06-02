@@ -24,6 +24,7 @@ if (!file.exists(result_path) || !(scenario %in% c("1", "2", "3"))) {
   env  <- read_json_safe(file.path(out_dir, "env_diagnostics.json"))
   snap <- read_json_safe(file.path(out_dir, "snapshot_result.json"))
   srcinf <- read_json_safe(file.path(out_dir, "source_inference.json"))
+  status <- read_json_safe(file.path(out_dir, "status_result.json"))  # scenario 11 only
 
   deps_csv <- file.path(out_dir, "discovered-dependencies.csv")
   biocmanager_found <- FALSE
@@ -40,9 +41,9 @@ if (!file.exists(result_path) || !(scenario %in% c("1", "2", "3"))) {
   if (!biocversion_found && !is.null(snap$biocversion_discovered))
     biocversion_found <- isTRUE(snap$biocversion_discovered)
 
-  # biocViews present at snapshot time: scenarios 4/6/7 (metaRNASeq, intact),
+  # biocViews present at snapshot time: scenarios 4/6/7/9/10/11 (metaRNASeq, intact),
   # 8 (project-as-package fixture). Scenario 5 strips it from the DESCRIPTION.
-  biocviews_present <- scenario %in% c("4", "6", "7", "8")
+  biocviews_present <- scenario %in% c("4", "6", "7", "8", "9", "10", "11")
 
   snap_status  <- snap$snapshot_status %||% "unknown"
   lock_written <- file.exists(file.path(out_dir, "renv.lock")) ||
@@ -64,6 +65,11 @@ if (!file.exists(result_path) || !(scenario %in% c("1", "2", "3"))) {
     # Path B open-network proof (scenario 4): the Source renv records for the
     # PPM/RSPM-installed metaRNASeq when a snapshot is allowed to complete.
     metarnaseq_source_open_network = srcinf$metarnaseq_source_open_network %||% NA,
+    # Path C (scenario 11): snapshot completes but the project is left out of sync.
+    status_synchronized           = status$synchronized %||% NA,
+    project_out_of_sync           = status$project_out_of_sync %||% NA,
+    biocmanager_inconsistent      = status$biocmanager_inconsistent %||% NA,
+    biocversion_inconsistent      = status$biocversion_inconsistent %||% NA,
     renv_lock_written             = lock_written,
     notes                         = ""
   )
@@ -71,7 +77,8 @@ if (!file.exists(result_path) || !(scenario %in% c("1", "2", "3"))) {
   cat("Wrote result.json\n")
 
   # Clean up intermediate files now that result.json captures their content
-  for (f in c("snapshot_result.json", "env_diagnostics.json", "source_inference.json")) {
+  for (f in c("snapshot_result.json", "env_diagnostics.json", "source_inference.json",
+              "status_result.json")) {
     p <- file.path(out_dir, f)
     if (file.exists(p)) file.remove(p)
   }

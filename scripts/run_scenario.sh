@@ -154,6 +154,61 @@ case "$SCENARIO" in
     fi
     ;;
 
+  9)
+    # Workaround attempt (initial): options(renv.bioconductor.repos = character(0)).
+    # The .Rprofile template sets the option. It overrides only the repos lookup,
+    # not snapshot's prior version-validation probe, so snapshot STILL fails — the
+    # same outcome as scenario 4, proving this specific attempt is ineffective.
+    if [ "$PHASE" = "install" ]; then
+      setup_rprofile
+      export PACKAGE=metaRNASeq
+      run_r /scripts/10_init_project.R
+      run_r /scripts/20_install_pkg.R
+    elif [ "$PHASE" = "snapshot" ]; then
+      export PACKAGE=metaRNASeq
+      run_r /scripts/00_env_diagnostics.R
+      run_r /scripts/30_snapshot.R || true
+      run_r_noenv /scripts/70_collect_artifacts.R
+    fi
+    ;;
+
+  10)
+    # Workaround attempt (support #1): renv.bioconductor.repos = a real, fast URL.
+    # Same outcome as scenario 9 — the version-validation call is independent of the
+    # repos override, so snapshot STILL fails (immediate error instead of a timeout).
+    if [ "$PHASE" = "install" ]; then
+      setup_rprofile
+      export PACKAGE=metaRNASeq
+      run_r /scripts/10_init_project.R
+      run_r /scripts/20_install_pkg.R
+    elif [ "$PHASE" = "snapshot" ]; then
+      export PACKAGE=metaRNASeq
+      run_r /scripts/00_env_diagnostics.R
+      run_r /scripts/30_snapshot.R || true
+      run_r_noenv /scripts/70_collect_artifacts.R
+    fi
+    ;;
+
+  11)
+    # Path C (full combo): R_BIOC_VERSION + BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS=FALSE
+    # + renv.bioconductor.repos=character(0) silence the bioconductor.org probe, so
+    # snapshot COMPLETES. But metaRNASeq's biocViews still injects BiocManager +
+    # BiocVersion as project dependencies, so renv::status() reports them inconsistent
+    # and the project is out of sync. 50_status_check.R captures that state.
+    if [ "$PHASE" = "install" ]; then
+      setup_rprofile
+      export PACKAGE=metaRNASeq
+      run_r /scripts/10_init_project.R
+      run_r /scripts/20_install_pkg.R
+    elif [ "$PHASE" = "snapshot" ]; then
+      export PACKAGE=metaRNASeq
+      run_r /scripts/00_env_diagnostics.R
+      run_r /scripts/30_snapshot.R || true
+      run_r /scripts/50_status_check.R || true
+      run_r_noenv /scripts/70_collect_artifacts.R
+    fi
+    ;;
+
   8)
     # Path A — the project ITSELF is a package with a non-empty biocViews field.
     # renv::dependencies() genuinely discovers BiocManager + BiocVersion as implicit
