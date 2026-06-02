@@ -1,0 +1,30 @@
+--- a/R/snapshot.R
++++ b/R/snapshot.R
+@@ -935,16 +935,21 @@
+     return(list(Source = alias(type)))
+   }
+ 
+-  # packages from Bioconductor are normally tagged with a 'biocViews' entry;
+-  # use that to infer a Bioconductor source
+-  if (nzchar(dcf[["biocViews"]] %||% ""))
+-    return(list(Source = "Bioconductor"))
+-
+-  # check for a declared repository
++  # check for a declared repository first: a package installed from a
++  # CRAN-like repository (e.g. Repository: RSPM / CRAN) should be recorded
++  # against that repository even when its DESCRIPTION carries a non-empty
++  # 'biocViews' field, as many ordinary CRAN packages do.
++  # https://github.com/rstudio/renv/issues/2149
+   repository <- dcf[["RemoteReposName"]] %||% dcf[["Repository"]]
+   if (!is.null(repository))
+     return(list(Source = "Repository", Repository = repository))
+ 
++  # packages from Bioconductor are normally tagged with a 'biocViews' entry;
++  # use that to infer a Bioconductor source. Genuine Bioconductor installs
++  # have no CRAN-like Repository field, so they still fall through to here.
++  if (nzchar(dcf[["biocViews"]] %||% ""))
++    return(list(Source = "Bioconductor"))
++
+   # check for a valid package name
+   package <- dcf[["Package"]]
+   if (is.null(package))

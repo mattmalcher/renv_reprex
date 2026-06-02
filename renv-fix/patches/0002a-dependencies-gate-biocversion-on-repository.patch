@@ -1,0 +1,23 @@
+--- a/R/dependencies.R
++++ b/R/dependencies.R
+@@ -599,10 +599,19 @@
+   # if this is a bioconductor package, add their implicit dependencies
+   # guard against packages which have an empty biocViews field
+   # https://github.com/rstudio/renv/issues/2149
++  #
++  # a non-empty 'biocViews' field is not by itself evidence of a Bioconductor
++  # install: many ordinary CRAN packages carry one. When the DESCRIPTION
++  # declares a CRAN-like repository (Repository: RSPM / CRAN), do not inject
++  # the Bioconductor-only 'BiocVersion' package, which cannot be obtained in a
++  # CRAN/PPM-only environment.
+   if (nzchar(dcf[["biocViews"]] %||% "")) {
++    bioc_packages <- renv_bioconductor_manager()
++    if (is.null(dcf[["Repository"]] %||% dcf[["RemoteReposName"]]))
++      bioc_packages <- c(bioc_packages, "BiocVersion")
+     data[[length(data) + 1L]] <- renv_dependencies_list(
+       source = path,
+-      packages = c(renv_bioconductor_manager(), "BiocVersion")
++      packages = bioc_packages
+     )
+     names(data)[[length(data)]] <- "Bioconductor"
+   }
