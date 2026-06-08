@@ -79,3 +79,43 @@ A complete fix would need one of:
 - **URL matching:** match the `Repository` field value against known PPM
   hostnames (`packagemanager.posit.co`, `packagemanager.rstudio.com`) rather
   than against the user-assigned name.
+
+## Needs verification: are we conflating package metadata with repo name?
+
+**This section needs verification before being relied upon.**
+
+The argument above may conflate two distinct things:
+
+- **Package metadata** — `Repository: RSPM` is a fixed identifier PPM bakes into
+  every tarball it serves, representing PPM's identity as the serving infrastructure.
+- **Repo name** — the label the user (or administrator) assigns to the PPM URL in
+  `options(repos)`, e.g. `c(CRAN = "https://packagemanager.posit.co/...")`.
+
+For CRAN these coincide by convention: the field value and the user's repo name
+are both `"CRAN"`. renv's fix (`repository %in% names(getOption("repos"))`) relies
+on this coincidence holding universally — it treats the `Repository` field as if it
+were the user's repo name. For PPM the two are different: the field is a fixed
+service identifier (`"RSPM"`), independent of what the user called the repo.
+
+**Posit's own documentation reinforces the mismatch.** The [Workbench + Package
+Manager admin guide](https://docs.posit.co/rspm/admin/workbench.html#internal-packages-and-cran-packages)
+explicitly instructs administrators to configure `repos.conf` as:
+
+```
+CRAN=https://[package-manager-server-address]/[cran-repo-name]/latest
+Internal=https://[package-manager-server-address]/[internal-repo-name]/latest
+```
+
+and states: *"the repo containing CRAN packages should be indexed with the keyword
+`CRAN`."*
+
+Following this guidance, the session repos will be `c(CRAN = "https://...")`, so
+`names(getOption("repos"))` will be `"CRAN"` — and `"RSPM" %in% c("CRAN")` is
+always `FALSE`.
+
+**What needs checking:** whether R's `install.packages()` overwrites the
+`Repository` field at install time (e.g. with the user's repo name), or preserves
+the value already in the tarball. We observed `Repository: RSPM` in both the raw
+tarball and the installed package, which is consistent with R preserving the
+tarball value — but this has not been confirmed against R source or tested with a
+repo named `"RSPM"`.
