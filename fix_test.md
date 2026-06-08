@@ -47,13 +47,19 @@ PPM stamps `Repository: RSPM` into the package tarball **before it is
 downloaded**. This was verified by inspecting the raw tarball directly from PPM:
 
 ```
+# PPM
 curl -sL "https://packagemanager.posit.co/cran/__linux__/noble/latest/src/contrib/metaRNASeq_1.0.8.tar.gz" \
   | tar -xzO metaRNASeq/DESCRIPTION | grep Repository
 # Repository: RSPM
+
+# CRAN
+curl -sL "https://cran.r-project.org/src/contrib/metaRNASeq_1.0.8.tar.gz" \
+  | tar -xzO metaRNASeq/DESCRIPTION | grep Repository
+# Repository: CRAN
 ```
 
-The same package on CRAN carries `Repository: CRAN`. PPM rewrites this field
-when it re-serves the package. R's `install.packages()` is not involved — the
+The tarballs are otherwise identical in structure; PPM rewrites only the
+`Repository` field when it re-serves the package. R's `install.packages()` is not involved — the
 stamp is in the tarball itself.
 
 The `x-repository-type: RSPM` HTTP header PPM returns on every request is a
