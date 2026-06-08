@@ -140,3 +140,70 @@ The one case not yet exercised is a session that *names* its PPM repo `"RSPM"` i
 `options(repos)` (rather than `"CRAN"`). There step 4 would match and the fix would
 work — but that naming is non-standard and contradicts Posit's own admin guidance
 above, so it does not describe the typical PPM user.
+
+## Does naming a repo `"CRAN"` cause false *negatives* for real Bioconductor packages?
+
+A natural worry about the new logic: it short-circuits on `identical(repository,
+"CRAN")` (step 2) and on `repository %in% names(getOption("repos"))` (step 4), both
+returning "not Bioconductor". Posit's [Bioconductor admin
+guidance](https://docs.posit.co/rspm/admin/workbench.html) even has admins point a
+repo *named* `CRAN` at a "CRAN snapshot compatible with Bioconductor":
+
+```r
+# Configure BiocManager to use Posit Package Manager
+options(BioC_mirror = "https://[server]/[bioconductor-repo-name]/latest")
+options(BIOCONDUCTOR_CONFIG_FILE = "https://[server]/[bioconductor-repo-name]/latest/config.yaml")
+Sys.setenv("R_BIOC_VERSION" = "[bioconductor-version]")
+# Configure a CRAN snapshot compatible with Bioconductor [bioconductor-version]
+options(repos = c(CRAN = "https://[server]/[cran-repo-name]/[snapshot]"))
+```
+
+Could a genuine Bioconductor package get caught by the `CRAN` branch and be
+mislabelled as non-Bioconductor? **No.** The protection is the same
+metadata-vs-name separation that the fix gets *wrong* in the other direction:
+
+- The Bioconductor repo is configured via `BioC_mirror` / `BIOCONDUCTOR_CONFIG_FILE`
+  — a **third namespace** that `renv_description_bioconductor()` never consults. It
+  is not in `options(repos)`, so it cannot affect classification.
+- The repo Posit labels `CRAN` is a *CRAN* snapshot — it serves CRAN packages
+  (stamped `RSPM` via PPM, or `CRAN` upstream). Bioconductor packages live in the
+  separate Bioc repo. The two never mix, so the `CRAN`-named repo never serves a
+  package whose origin is Bioconductor.
+- A genuine Bioconductor package never carries `Repository: CRAN`. Verified against
+  a live Bioconductor package (limma, from bioconductor.org):
+
+  ```
+  Repository: Bioconductor 3.23
+  git_url: https://git.bioconductor.org/packages/limma
+  biocViews: ExonArray, GeneExpression, ...
+  ```
+
+  This hits **step 1** (`grepl("Bioconductor", repository)` → `TRUE`) and returns
+  *before* the `CRAN` checks are reached. The `git.bioconductor.org` `git_url` is a
+  second backstop at **step 5**. The `identical(repository, "CRAN")` branch only
+  fires for packages literally stamped `"CRAN"` (genuine CRAN packages) — a package
+  cannot be stamped both `Bioconductor X.Y` and `CRAN`.
+
+So naming a repo `"CRAN"` introduces **no false negative** for real Bioconductor
+packages. The classification table:
+
+| Package | `Repository` stamp | New renv verdict | Correct? |
+|---|---|---|---|
+| Real Bioc pkg (limma), from bioconductor.org | `Bioconductor 3.23` | Bioconductor (step 1) | ✓ |
+| Real Bioc pkg via PPM Bioc repo | `RSPM` + `git.bioconductor.org` url | Bioconductor (step 5/6) | ✓ |
+| CRAN pkg w/ biocViews (metaRNASeq), upstream CRAN | `CRAN` | not Bioconductor (step 2) | ✓ |
+| **CRAN pkg w/ biocViews via PPM** (metaRNASeq) | **`RSPM`** | **Bioconductor (step 6 fallback)** | **✗ — the bug** |
+
+The only misfire remains the false *positive* on the bottom row — the original
+defect. The `CRAN`-named-snapshot in Posit's Bioconductor config does not add a new
+failure mode; genuine Bioconductor detection is insulated by the same field-vs-name
+separation the fix mishandles for PPM-served CRAN packages.
+
+(Note on the fully-configured Bioconductor case: `renv_bioconductor_version()` does
+not read `R_BIOC_VERSION` / `BIOCONDUCTOR_CONFIG_FILE` directly — it delegates to
+BiocManager, installing it if absent. If an admin set those (per the block above),
+BiocManager can resolve the version from PPM without reaching `bioconductor.org`,
+which *masks* the misdetection at snapshot time but still writes `Source:
+Bioconductor` into `renv.lock` for a CRAN package — a wrong record that can break a
+later `restore()`. This delegation step is reasoned from the source, not exercised
+by the harness, which sets only `options(repos)` and no Bioconductor variables.)
