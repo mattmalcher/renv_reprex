@@ -51,6 +51,8 @@ Bioconductor status: blocked: no HTTP response
 > info <- list(scenario = scenario, r_version = R.version$version.string, 
 +     renv_version = renv_ver, repos = getOption("repos"), BioC_mirror = getOption("BioC_mirror"), 
 +     BIOCONDUCTOR_CONFIG_FILE = getOption("BIOCONDUCTOR_CONFIG_FILE"), 
++     renv.bioconductor.repos = getOption("renv.bioconductor.repos"), 
++     BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS = Sys.getenv("BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS"), 
 +     R_BIOC_VERSION = Sys.getenv("R_BIOC_VERSION"), ppm_access = grepl("^reachable", 
 +         ppm_status), bioc_access = grepl("^reachable", bioc_status), 
 +     ppm_status = ppm_status, bioc_status = bioc_status)
@@ -124,14 +126,14 @@ The following objects are masked from ‘package:base’:
 
 > library(jsonlite)
 
-> src <- file.path("/fixtures", fixture)
-
 Attaching package: ‘jsonlite’
 
 The following object is masked _by_ ‘.GlobalEnv’:
 
     write_json
 
+
+> src <- file.path("/fixtures", fixture)
 
 > for (item in list.files(src, full.names = TRUE)) file.copy(item, 
 +     ".", recursive = TRUE, overwrite = TRUE)
@@ -230,13 +232,13 @@ The following package(s) will be installed:
 These packages will be installed into "~/.cache/R/renv/library/project-20bde257/linux-ubuntu-noble/R-4.4/x86_64-pc-linux-gnu".
 
 # Downloading packages -------------------------------------------------------
-[?25l  (0/1) Downloading: BiocManager                                                                                                                                [32m✔[0m BiocManager 1.30.27                      [666 kB in 0.58s]
+[?25l  (0/1) Downloading: BiocManager                                                                                                                                [32m✔[0m BiocManager 1.30.27                      [666 kB in 0.55s]
                                                                                 [31m✖[0m BiocVersion                             
-Successfully downloaded 1 package in 0.73 seconds.
+Successfully downloaded 1 package in 0.72 seconds.
 
 # Installing packages --------------------------------------------------------
                                                                                 [32m✔[0m BiocManager 1.30.27                      [installed binary]
-Successfully installed 1 package in 0.15 seconds.
+Successfully installed 1 package in 0.21 seconds.
 
 The following package(s) were not installed successfully:
 - [BiocVersion]: failed to download
@@ -315,6 +317,7 @@ Saved /project/renv/settings.json → renv-settings.json
 +     env <- read_json_safe(file.path(out_dir, "env_diagnostics.json"))
 +     snap <- read_json_safe(file.path(out_dir, "snapshot_result.json"))
 +     srcinf <- read_json_safe(file.path(out_dir, "source_inference.json"))
++     status <- read_json_safe(file.path(out_dir, "status_result.json"))
 +     deps_csv <- file.path(out_dir, "discovered-dependencies.csv")
 +     biocmanager_found <- FALSE
 +     biocversion_found <- FALSE
@@ -330,7 +333,8 @@ Saved /project/renv/settings.json → renv-settings.json
 +         biocmanager_found <- isTRUE(snap$biocmanager_discovered)
 +     if (!biocversion_found && !is.null(snap$biocversion_discovered)) 
 +         biocversion_found <- isTRUE(snap$biocversion_discovered)
-+     biocviews_present <- scenario %in% c("4", "6", "7", "8")
++     biocviews_present <- scenario %in% c("4", "6", "7", "8", 
++         "9", "10", "11")
 +     snap_status <- snap$snapshot_status %||% "unknown"
 +     lock_written <- file.exists(file.path(out_dir, "renv.lock")) || 
 +         isTRUE(snap$renv_lock_written)
@@ -343,11 +347,15 @@ Saved /project/renv/settings.json → renv-settings.json
 +             NA, target_package = snap$target_package %||% NA, 
 +         target_package_recorded = snap$target_package_recorded %||% 
 +             NA, metarnaseq_source_open_network = srcinf$metarnaseq_source_open_network %||% 
++             NA, status_synchronized = status$synchronized %||% 
++             NA, project_out_of_sync = status$project_out_of_sync %||% 
++             NA, biocmanager_inconsistent = status$biocmanager_inconsistent %||% 
++             NA, biocversion_inconsistent = status$biocversion_inconsistent %||% 
 +             NA, renv_lock_written = lock_written, notes = "")
 +     write_json(result, "result.json")
 +     cat("Wrote result.json\n")
 +     for (f in c("snapshot_result.json", "env_diagnostics.json", 
-+         "source_inference.json")) {
++         "source_inference.json", "status_result.json")) {
 +         p <- file.path(out_dir, f)
 +         if (file.exists(p)) 
 +             file.remove(p)
@@ -377,6 +385,10 @@ Outcome:
   "target_package": "BiocVersion",
   "target_package_recorded": false,
   "metarnaseq_source_open_network": null,
+  "status_synchronized": null,
+  "project_out_of_sync": null,
+  "biocmanager_inconsistent": null,
+  "biocversion_inconsistent": null,
   "renv_lock_written": false,
   "notes": ""
 } 

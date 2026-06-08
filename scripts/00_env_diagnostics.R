@@ -35,6 +35,9 @@ info <- list(
   repos                  = getOption("repos"),
   BioC_mirror            = getOption("BioC_mirror"),
   BIOCONDUCTOR_CONFIG_FILE = getOption("BIOCONDUCTOR_CONFIG_FILE"),
+  # Support-chain short-circuit levers (scenarios 9-11): record whether they are active.
+  renv.bioconductor.repos = getOption("renv.bioconductor.repos"),
+  BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS = Sys.getenv("BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS"),
   R_BIOC_VERSION         = Sys.getenv("R_BIOC_VERSION"),
   ppm_access             = grepl("^reachable", ppm_status),
   bioc_access            = grepl("^reachable", bioc_status),

@@ -1,5 +1,5 @@
-[run_scenario 4] No .Rprofile template for scenario 4 — renv::init() will create one
-[run_scenario 4] Running 10_init_project...
+[run_scenario 10] Installed .Rprofile from /templates/scenario_10.Rprofile
+[run_scenario 10] Running 10_init_project...
 
 > source("/scripts/_common.R")
 
@@ -7,7 +7,7 @@
 === 10_init_project ===
 
 > cat("Scenario:", scenario, "\n\n")
-Scenario: 4 
+Scenario: 10 
 
 
 > library(renv)
@@ -172,7 +172,7 @@ The version of R recorded in the lockfile will be updated:
 > cat("\nDone.\n")
 
 Done.
-[run_scenario 4] Running 20_install_pkg...
+[run_scenario 10] Running 20_install_pkg...
 
 > source("/scripts/_common.R")
 
@@ -182,7 +182,7 @@ Done.
 === 20_install_pkg ===
 
 > cat("Scenario:", scenario, "\n")
-Scenario: 4 
+Scenario: 10 
 
 > cat("Package:", package, "\n\n")
 Package: metaRNASeq 
@@ -231,8 +231,8 @@ The following package(s) will be installed:
 These packages will be installed into "/project/renv/library/linux-ubuntu-noble/R-4.4/x86_64-pc-linux-gnu".
 
 # Downloading packages -------------------------------------------------------
-[?25l  (0/1) Downloading: metaRNASeq                                                                                                                                 [32m✔[0m metaRNASeq 1.0.8                         [1.3 MB in 1.4s]
-                                                                                Successfully downloaded 1 package in 1.5 seconds.
+[?25l  (0/1) Downloading: metaRNASeq                                                                                                                                 [32m✔[0m metaRNASeq 1.0.8                         [1.3 MB in 0.59s]
+                                                                                Successfully downloaded 1 package in 0.75 seconds.
 
 # Installing packages --------------------------------------------------------
                                                                                 [32m✔[0m metaRNASeq 1.0.8                         [installed binary]
@@ -250,88 +250,9 @@ Wrote project.R: library( metaRNASeq )
 > cat("\nDone.\n")
 
 Done.
-[run_scenario 4] Running 35_capture_source_inference...
+[run_scenario 10] Done.
+[run_scenario 10] Running 00_env_diagnostics...
 [?25l[?25h- The project is out-of-sync -- use `renv::status()` for details.
-
-> source("/scripts/_common.R")
-
-> package <- Sys.getenv("PACKAGE", "metaRNASeq")
-
-> cat("=== 35_capture_source_inference ===\n")
-=== 35_capture_source_inference ===
-
-> cat("Package:", package, "\n\n")
-Package: metaRNASeq 
-
-
-> library(renv)
-
-Attaching package: ‘renv’
-
-The following objects are masked from ‘package:stats’:
-
-    embed, update
-
-The following objects are masked from ‘package:utils’:
-
-    history, upgrade
-
-The following objects are masked from ‘package:base’:
-
-    autoload, load, remove, use
-
-
-> library(jsonlite)
-
-Attaching package: ‘jsonlite’
-
-The following object is masked _by_ ‘.GlobalEnv’:
-
-    write_json
-
-
-> desc_path <- tryCatch(file.path(find.package(package), 
-+     "DESCRIPTION"), error = function(e) "")
-
-> source_value <- NA
-
-> repository_value <- NA
-
-> biocviews_value <- NA
-
-> if (nzchar(desc_path) && file.exists(desc_path)) {
-+     dcf <- renv:::renv_description_read(path = desc_path)
-+     inferred <- renv:::renv_snapshot_description_source(dcf)
-+     source_value <- inferred$Source %||% NA
-+     repository_value <- dcf[["Repository"]] %||% NA
-+     biocviews_value <- dcf[["biocViews"]] %||% NA
-+     cat("Installed", package, "DESCRIPTION:\n")
-+     cat("  Repository:", repository_value, "\n")
-+     cat("  biocViews: ", biocviews_value, "\n")
-+     cat("renv_snapshot_description_source() inferred Source:", 
-+         source_value, "\n\n")
-+     write_json(list(Package = package, Source = source_value, 
-+         Repository = repository_value, biocViews = biocviews_value), 
-+         "lock-source-inference.json")
-+     cat("Saved lock-source-inference.json\n")
-+ } else {
-+     cat("WARNING: could not locate installed", package, "DESCRIPTION.\n")
-+ }
-Installed metaRNASeq DESCRIPTION:
-  Repository: RSPM 
-  biocViews:  HighThroughputSequencing, RNAseq, DifferentialExpression 
-renv_snapshot_description_source() inferred Source: Bioconductor 
-
-Saved lock-source-inference.json
-
-> write_json(list(metarnaseq_source_open_network = source_value, 
-+     metarnaseq_repository_open_network = repository_value), "source_inference.json")
-
-> cat("\nDone.\n")
-
-Done.
-[run_scenario 4] Done.
-[run_scenario 4] Running 00_env_diagnostics...
 - The project is out-of-sync -- use `renv::status()` for details.
 
 > source("/scripts/_common.R")
@@ -340,7 +261,7 @@ Done.
 === 00_env_diagnostics ===
 
 > cat("Scenario:", scenario, "\n\n")
-Scenario: 4 
+Scenario: 10 
 
 
 > check_url_curl <- function(url, timeout_s = 10) {
@@ -417,14 +338,15 @@ Bioconductor reachable: FALSE
 
 > write_json(info, "env_diagnostics.json")
 
+Warning message:
+In system2("curl", args, stdout = TRUE, stderr = FALSE) :
+  running command ''curl' -s -o /dev/null -w %{http_code} --connect-timeout 10 --max-time 10 https://bioconductor.org 2>/dev/null' had status 7 and error message 'Function not implemented'
 > cat("Wrote env_diagnostics.json, session-info.txt\n\nDone.\n")
 Wrote env_diagnostics.json, session-info.txt
 
 Done.
-Warning message:
-In system2("curl", args, stdout = TRUE, stderr = FALSE) :
-  running command ''curl' -s -o /dev/null -w %{http_code} --connect-timeout 10 --max-time 10 https://bioconductor.org 2>/dev/null' had status 7 and error message 'Function not implemented'
-[run_scenario 4] Running 30_snapshot...
+[run_scenario 10] Running 30_snapshot...
+- The project is out-of-sync -- use `renv::status()` for details.
 - The project is out-of-sync -- use `renv::status()` for details.
 
 > source("/scripts/_common.R")
@@ -435,7 +357,7 @@ In system2("curl", args, stdout = TRUE, stderr = FALSE) :
 === 30_snapshot ===
 
 > cat("Scenario:", scenario, "\n")
-Scenario: 4 
+Scenario: 10 
 
 > cat("Target package:", if (nzchar(target)) target else "(none)", 
 +     "\n\n")
@@ -443,6 +365,8 @@ Target package: metaRNASeq
 
 
 > library(renv)
+
+> library(jsonlite)
 
 Attaching package: ‘renv’
 
@@ -458,8 +382,6 @@ The following objects are masked from ‘package:base’:
 
     autoload, load, remove, use
 
-
-> library(jsonlite)
 
 Attaching package: ‘jsonlite’
 
@@ -518,8 +440,25 @@ Running renv::snapshot()...
 +     cat("WARNING:", conditionMessage(w), "\n")
 +     invokeRestart("muffleWarning")
 + })
-ERROR: invalid version specification ‘unknown version: Bioconductor version cannot be validated; no internet connection?
-    See #troubleshooting section in vignette’ 
+renv was unable to query available packages from the following repositories:
+- # http://127.0.0.1/bioc/src/contrib ------------------------------------------
+error downloading 'http://127.0.0.1/bioc/src/contrib/PACKAGES.rds' [error code 7]
+error downloading 'http://127.0.0.1/bioc/src/contrib/PACKAGES.gz' [error code 7]
+error downloading 'http://127.0.0.1/bioc/src/contrib/PACKAGES' [error code 7]
+
+
+The following Bioconductor packages appear to be from a separate Bioconductor release:
+- metaRNASeq [installed 1.0.8 != latest <NA>]
+- metaRNASeq [installed 1.0.8 != latest <NA>]
+renv may be unable to restore these packages.
+Bioconductor version: unknown version: Bioconductor version cannot be validated; no internet connection?
+    See #troubleshooting section in vignette
+
+The following required packages are not installed:
+- BiocVersion  [required by metaRNASeq]
+Consider reinstalling these packages before snapshotting the lockfile.
+
+ERROR: aborting snapshot due to pre-flight validation failure 
 
 > recorded_packages <- character()
 
@@ -592,7 +531,7 @@ Snapshot status: failure
 > cat("\nDone.\n")
 
 Done.
-[run_scenario 4] Running 70_collect_artifacts (no-init-file)...
+[run_scenario 10] Running 70_collect_artifacts (no-init-file)...
 
 > source("/scripts/_common.R")
 
@@ -600,7 +539,7 @@ Done.
 === 70_collect_artifacts ===
 
 > cat("Scenario:", scenario, "\n\n")
-Scenario: 4 
+Scenario: 10 
 
 
 > read_json_safe <- function(path) {
@@ -682,7 +621,7 @@ Outcome:
 > cat(paste(readLines(result_path), collapse = "\n"), 
 +     "\n")
 {
-  "scenario": "4",
+  "scenario": "10",
   "operation": "renv::snapshot()",
   "ppm_reachable": true,
   "bioconductor_reachable": false,
@@ -690,11 +629,11 @@ Outcome:
   "biocmanager_discovered": false,
   "biocversion_discovered": false,
   "snapshot_status": "failure",
-  "snapshot_error_classification": "Bioconductor version validation failed",
+  "snapshot_error_classification": "aborting snapshot due to pre-flight validation failure",
   "snapshot_warnings": [],
   "target_package": "metaRNASeq",
   "target_package_recorded": false,
-  "metarnaseq_source_open_network": "Bioconductor",
+  "metarnaseq_source_open_network": null,
   "status_synchronized": null,
   "project_out_of_sync": null,
   "biocmanager_inconsistent": null,
@@ -706,4 +645,4 @@ Outcome:
 > cat("\nDone.\n")
 
 Done.
-[run_scenario 4] Done.
+[run_scenario 10] Done.

@@ -2,7 +2,7 @@
 # run_matrix.sh — build the renv biocViews/BiocVersion debugging harness and run scenarios.
 #
 # Usage:
-#   ./run_matrix.sh              # run all 8 scenarios
+#   ./run_matrix.sh              # run all 11 scenarios
 #   ./run_matrix.sh 2 4 5        # run specific scenarios
 #   ./run_matrix.sh --build-only # build image and exit
 #
@@ -123,15 +123,15 @@ run_two_phase_scenario() {
 
 # ── parse args ─────────────────────────────────────────────────────────────────
 
-ALL_SCENARIOS=(1 2 3 4 5 6 7 8)
+ALL_SCENARIOS=(1 2 3 4 5 6 7 8 9 10 11)
 RUN_SCENARIOS=()
 BUILD_ONLY=false
 
 for arg in "$@"; do
   case "$arg" in
-    --build-only) BUILD_ONLY=true ;;
-    [1-8])        RUN_SCENARIOS+=("$arg") ;;
-    *)            echo "Unknown argument: $arg" >&2; exit 1 ;;
+    --build-only)               BUILD_ONLY=true ;;
+    1|2|3|4|5|6|7|8|9|10|11)     RUN_SCENARIOS+=("$arg") ;;
+    *)                          echo "Unknown argument: $arg" >&2; exit 1 ;;
   esac
 done
 
@@ -186,6 +186,21 @@ for s in "${RUN_SCENARIOS[@]}"; do
       # Single-phase: no external package install needed
       run_scenario 8 "${BLOCK_HOSTS[@]}"
       ;;
+    9)
+      # Workaround attempt (initial): renv.bioconductor.repos = character(0), Bioc blocked
+      # Two-phase; expected to still fail (overrides repos lookup, not version probe)
+      run_two_phase_scenario 9 "${BLOCK_HOSTS[@]}"
+      ;;
+    10)
+      # Workaround attempt (support #1): renv.bioconductor.repos = real fast URL, Bioc blocked
+      # Two-phase; expected to still fail (version probe is independent of repos override)
+      run_two_phase_scenario 10 "${BLOCK_HOSTS[@]}"
+      ;;
+    11)
+      # Path C (full combo): network probe silenced so snapshot completes, but the
+      # project is left out of sync (BiocManager + BiocVersion inconsistent). Bioc blocked.
+      run_two_phase_scenario 11 "${BLOCK_HOSTS[@]}"
+      ;;
   esac
 done
 
@@ -199,7 +214,7 @@ $DOCKER run --rm \
   "$IMAGE" \
   --no-save --no-restore -e "
     library(jsonlite)
-    ss <- as.character(1:8)
+    ss <- as.character(1:11)
     results <- lapply(setNames(ss, ss), function(s) {
       p <- file.path('/artifacts', s, 'result.json')
       if (file.exists(p)) fromJSON(p, simplifyVector = FALSE)

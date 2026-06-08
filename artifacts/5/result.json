@@ -12,6 +12,10 @@
   "target_package": "metaRNASeq",
   "target_package_recorded": true,
   "metarnaseq_source_open_network": null,
+  "status_synchronized": null,
+  "project_out_of_sync": null,
+  "biocmanager_inconsistent": null,
+  "biocversion_inconsistent": null,
   "renv_lock_written": true,
   "notes": ""
 }

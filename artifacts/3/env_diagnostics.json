@@ -5,6 +5,8 @@
   "repos": "https://packagemanager.posit.co/cran/__linux__/noble/latest",
   "BioC_mirror": {},
   "BIOCONDUCTOR_CONFIG_FILE": {},
+  "renv.bioconductor.repos": {},
+  "BIOCONDUCTOR_ONLINE_VERSION_DIAGNOSIS": "",
   "R_BIOC_VERSION": "",
   "ppm_access": true,
   "bioc_access": true,
