@@ -5,8 +5,10 @@ file as a Bioconductor signal, even on a package installed from CRAN/PPM. This b
 in CRAN/PPM-only enterprise environments where Bioconductor is unreachable — even when the
 user has not explicitly depended on any Bioconductor package.
 
-A non-empty `biocViews` field triggers **two independent renv mechanisms** (see §1), each
-breaking a different operation:
+A non-empty `biocViews` field triggers **two distinct renv mechanisms** (see §1), each
+breaking a different operation. They are separate code paths with separate entry points, but
+they are not isolated at runtime: inside a single `renv::snapshot()` both can fire, and both
+ultimately dead-end on the same uninstallable `BiocVersion`.
 
 - **Path A — dependency injection of an uninstallable `BiocVersion`.** A `biocViews` field
   makes renv inject `BiocManager` + `BiocVersion` as implicit dependencies
@@ -14,19 +16,26 @@ breaking a different operation:
   from CRAN/PPM, this one root cause surfaces in three places: `renv::install()` /
   `renv::restore()` fail outright; `renv::snapshot()` aborts at **pre-flight validation**
   once Path B's network probe is silenced (`BiocVersion [required by metaRNASeq]` not
-  installed); and `renv::status()` / `renv::activate()` report the project **out of sync**
-  on **every** session startup ("used in the project but never installable").
+  installed); and `renv::status()` reports the project **out of sync** ("used in the project
+  but never installable"). The same inconsistency is what the renv autoloader (`renv::load()`,
+  sourced from `renv/activate.R`) surfaces on **every** session startup — though only the
+  `status()` surface is captured as an artifact here (scenario 11).
 - **Path B — snapshot source inference → a Bioconductor version probe.** When a project
   merely *depends on* an installed CRAN/PPM package whose DESCRIPTION has `biocViews`, renv
   infers `Source = "Bioconductor"` for it (even with `Repository: RSPM`) and
   `renv::snapshot()` fails resolving the Bioconductor version over the network
-  (`config.yaml`). Here `BiocVersion` is never even discovered — the failure is purely
-  version validation.
+  (`config.yaml`). On this path the *first* failure is purely version validation — the
+  injected `BiocVersion` is discovered too (it is the same metaRNASeq project), but missing
+  `BiocVersion` does not surface until the version probe is silenced (scenarios 9–11).
 
 In a CRAN/PPM-only environment where Bioconductor is *never* reachable, `BiocVersion` is
-never installed, so there is **no separate "snapshot completes but is merely out of sync"
-state**: silencing the Path B probe just moves `snapshot()`'s failure from the version check
-to the Path A pre-flight check (scenarios 9–11).
+never installed, so **under this repo's non-interactive measurement (`prompt = FALSE`,
+`force = FALSE`)** silencing the Path B probe just moves `snapshot()`'s failure from the
+version check to the Path A pre-flight check (scenarios 9–11) — it does not let `snapshot()`
+complete. The customer-reported "snapshot succeeds but goes out of sync" state *is* reachable,
+but only via the continuation paths in `renv_snapshot_validate_report()` (`snapshot.R:335`):
+`force = TRUE`, or an interactive session where the user answers the proceed prompt. The
+harness here exercises neither, which is why every scenario below ends in a clean abort.
 
 **Environment used in this run**
 
@@ -81,8 +90,8 @@ common Bioconductor-side mitigations do *not* resolve it (6, 7), nor do the renv
 env-var short-circuits raised in the support chain (9, 10), which only change *how*
 `snapshot()` fails. Scenario 11 shows that even the full combo — which *does* silence the
 Path B network probe — does not make `snapshot()` succeed: it just moves the failure to
-Path A's pre-flight check (`BiocVersion` not installed), the same root cause that also
-leaves `status()`/`activate()` out of sync.
+Path A's pre-flight check (`BiocVersion` not installed), the same root cause that
+`status()` reports as out of sync (and the autoloader surfaces at startup).
 
 | # | Description | Operation | Network | biocViews | Result |
 |---|-------------|-----------|---------|-----------|--------|
@@ -122,15 +131,15 @@ flowchart TD
     GA -->|"yes — Bioc reachable"| Win
 
     Src["Path B — Source = Bioconductor<br/>even if Repository: RSPM (snapshot.R:940)"] --> G1{"validate Bioc version<br/>via config.yaml"}
-    G1 -->|"fails + repos NOT short-circuited<br/>→ hard error"| BF["❌ 'Bioconductor version cannot<br/>be validated' — scenarios 4, 6, 7"]:::fail
-    G1 -->|"fails + repos short-circuited<br/>→ demoted to warning"| G3
+    G1 -->|"repos NOT short-circuited<br/>→ .repositories() hard-errors"| BF["❌ 'Bioconductor version cannot<br/>be validated' — scenarios 4, 6, 7"]:::fail
+    G1 -->|"repos short-circuited<br/>→ .repositories() skipped, only warns"| G3
     G1 -->|"passes: Bioc reachable<br/>or R_BIOC_VERSION offline"| G3
 
     G3{"pre-flight check —<br/>is BiocVersion installed?"}:::gate
     G3 -->|"no — Bioc unreachable"| PF["❌ 'aborting snapshot: pre-flight<br/>validation failure' — scenarios 9, 10, 11"]:::fail
     G3 -->|"yes — BiocVersion present"| Win
 
-    PF -. "status() / activate() also report out of<br/>sync on every startup — scenario 11" .-> OOS["❌ project out of sync"]:::fail
+    PF -. "status() reports out of sync (scenario 11);<br/>autoloader load() surfaces it at startup" .-> OOS["❌ project out of sync"]:::fail
 
     Start -. "strip biocViews — scenario 5" .-> Fix["no source inference,<br/>no injection"]:::fix
     Fix --> Win
@@ -204,14 +213,17 @@ When snapshot records an *installed* package, this runs **before** the repositor
 CRAN/PPM package whose DESCRIPTION has `biocViews` is recorded as `Source = "Bioconductor"`
 even though its `Repository` is `RSPM`. `renv_snapshot_validate_bioconductor()`
 (`snapshot.R:368`) then resolves the Bioconductor version over the network. This drives
-**scenarios 4, 6 and 7**. Note `BiocVersion` is never *discovered* on this path — the
-failure is purely version validation.
+**scenarios 4, 6 and 7**. Note the *first* failure on this path is version validation, not the
+injected `BiocVersion`: snapshot runs all four validators (`snapshot.R:317`), and the version
+probe aborts before missing `BiocVersion` matters. That injected dependency *is* present on
+this project — it is what aborts the pre-flight check once the probe is silenced (scenarios
+9–11).
 
 ### Which proof section covers which path
 
 | Path | Mechanism | Proof sections | Scenarios |
 |------|-----------|----------------|-----------|
-| **A** | dependency injection of uninstallable `BiocVersion` → `install()`/`restore()` fail; `snapshot()` aborts at pre-flight once the probe is silenced; `status()`/`activate()` out of sync | §2 (discovery), §4 (install), §5b (short-circuit combo) | 1, 2, 8, 11 |
+| **A** | dependency injection of uninstallable `BiocVersion` → `install()`/`restore()` fail; `snapshot()` aborts at pre-flight once the probe is silenced; `status()` (and the startup autoloader) report out of sync | §2 (discovery), §4 (install), §5b (short-circuit combo) | 1, 2, 8, 11 |
 | **B** | snapshot source inference → Bioconductor version probe → `snapshot()` fails | §3 (minimal pair), §5 (workarounds) | 4, 5, 6, 7, 9, 10 |
 
 Scenario 3 (`genetics`) belongs to neither failure — it is path-neutral motivation, showing the
@@ -316,14 +328,24 @@ renv::snapshot()
        └─ renv_snapshot_description_source()            [snapshot.R:940]
             └─ installed metaRNASeq has biocViews → Source = "Bioconductor"
                (even though Repository = RSPM)
-  └─ renv_snapshot_validate_bioconductor()              [snapshot.R:368]
-       └─ a record has Source == "Bioconductor"
-            └─ renv_bioconductor_version()              [snapshot.R:397 → bioconductor.R:108]
-            └─ renv_bioconductor_repos() → BiocManager$.repositories(version)
-                 └─ BiocManager validates the version via bioconductor.org/config.yaml
-                      └─ FAIL: connection refused (host blocked)
-                         └─ "Bioconductor version cannot be validated; no internet connection?"
+       └─ stamp lockfile$Bioconductor$Version           (Bioconductor source now present)
+            └─ renv_bioconductor_version() / repos resolution
+                 └─ BiocManager$.repositories(version)  [bioconductor.R:185]
+                      └─ validates the version via bioconductor.org/config.yaml
+                           └─ FAIL: connection refused (host blocked)
+                              └─ "invalid version specification: Bioconductor version
+                                  cannot be validated; no internet connection?"
 ```
+
+This hard error is raised during record construction, **before** pre-flight validation, so it
+propagates directly. Note the distinction: the four validators in `renv_snapshot_validate()`
+each run inside `tryCatch(error = function(e) { warning(e); FALSE })` (`snapshot.R:325`), so an
+error thrown *inside* `renv_snapshot_validate_bioconductor()` would be demoted to a warning and
+surface as `aborting snapshot due to pre-flight validation failure`. Scenario 4's raw
+`invalid version specification` error is therefore *not* coming from that validator — it
+originates earlier, where the version is resolved without a `tryCatch` guard. (Short-circuiting
+`renv.bioconductor.repos` in scenarios 9–11 skips the `.repositories()` call that throws here,
+which is why those runs reach pre-flight instead — see §5b.)
 
 ---
 
@@ -339,10 +361,15 @@ declared dependencies fails:
 ERROR: failed to install "BiocVersion" (package 'BiocVersion' is not available)
 ```
 
-A `renv::snapshot()` of this same project would *not* fail (BiocVersion is merely discovered,
-never installed, so the snapshot-time Bioconductor validation never fires) — the breakage is
-at `install()` / `restore()` time. Evidence: `artifacts/8/result.json`,
-`artifacts/8/discovered-dependencies.csv` (shows `Type = "Bioconductor"` BiocVersion).
+This breakage is at `install()` / `restore()` time. We do **not** assert anything about a
+`renv::snapshot()` of this project — no scenario here runs it, so it would be unproven. (The
+*source*-inference validator `renv_snapshot_validate_bioconductor()` keys off lockfile records
+with `Source == "Bioconductor"` (`snapshot.R:375`), of which there would be none here; but
+`renv_snapshot_validate_dependencies_available()` (`snapshot.R:450`) and the type of snapshot
+(`implicit` vs `explicit`) determine whether the project's injected `BiocVersion` reaches a
+failing pre-flight check, exactly as it does in scenarios 9–11. That is a separate experiment,
+not claimed.) Evidence: `artifacts/8/result.json`, `artifacts/8/discovered-dependencies.csv`
+(shows `Type = "Bioconductor"` BiocVersion).
 
 ### Path A call stack (scenario 8)
 
@@ -409,11 +436,14 @@ pre-flight check.
 
 > **Status of scenarios 9–11.** These cover the later support-chain emails. The
 > `artifacts/{9,10,11}/` evidence is generated by `./run_matrix.sh 9 10 11` (Docker Hub and
-> PPM reachable, Bioconductor blocked) and reflects renv 1.2.3's **actual** behavior — which
-> differs from the customer's "snapshot succeeds but goes out of sync" description: in a
-> never-reachable-Bioconductor environment the snapshot does not succeed at all, it aborts
-> at the Path A pre-flight check. See `renv-source/R/bioconductor.R` for the annotated source
-> lines referenced inline.
+> PPM reachable, Bioconductor blocked) and reflects renv 1.2.3's **actual** behavior under
+> non-interactive measurement (`prompt = FALSE`, `force = FALSE`): the snapshot aborts at the
+> Path A pre-flight check rather than completing. This is consistent with — not a
+> contradiction of — the customer's "snapshot succeeds but goes out of sync" description: that
+> outcome is what `renv_snapshot_validate_report()` (`snapshot.R:335`) produces when the same
+> pre-flight failure is *waved through* by `force = TRUE` or an interactive proceed prompt. Same
+> root cause, two surfaces; this harness measures the abort surface. See
+> `renv-source/R/bioconductor.R` for the annotated source lines referenced inline.
 
 The key is that snapshot's Bioconductor pre-flight does **two** independent things, in order
 (`snapshot.R:368` → `397`):
@@ -431,18 +461,24 @@ it — which is why the `renv.bioconductor.repos` workarounds alone cannot preve
 Critically, even past these two steps there is a **third** check: snapshot's pre-flight
 validation requires every dependency to be installed. Because `biocViews` injects
 `BiocVersion` (Path A) and it is not installed, this check aborts the snapshot regardless of
-how steps 1–2 resolve. Short-circuiting step 2 demotes a step-1 failure from a hard error to
-a non-fatal warning, so control *reaches* this third check — which is why scenarios 9–11 all
-end at the same `aborting snapshot due to pre-flight validation failure`.
+how steps 1–2 resolve. The reason scenario 4 hard-errors while 9–11 reach this third check is
+*which call throws*: with repos not overridden, the `BiocManager$.repositories()` call in step
+2 (`bioconductor.R:185`) raises the hard `invalid version specification` error during record
+construction (outside any `tryCatch`). Short-circuiting step 2 via `renv.bioconductor.repos`
+skips that call entirely, leaving only step 1's softer "cannot be validated" *warning* — so
+control reaches the third check, which is why scenarios 9–11 all end at the same
+`aborting snapshot due to pre-flight validation failure`. The change is not renv deliberately
+demoting an error; it is the hard-erroring call being bypassed.
 
 ### Scenario 9 — `options(renv.bioconductor.repos = character(0))` (initial attempt)
 
 `character(0)` is not `NULL`, so `renv_bioconductor_repos()` *does* short-circuit step 2 and
 return no Bioconductor repos. Step 1 (`renv_bioconductor_version → BiocManager$version`)
-still reaches `bioconductor.org/config.yaml` and cannot validate the version — but because
-step 2 is short-circuited, that failure is **demoted to a warning** rather than the hard
-error scenario 4 raises. Snapshot then proceeds to its third, pre-flight check and aborts
-there, because `BiocVersion` (required by `metaRNASeq`, Path A) is not installed:
+still reaches `bioconductor.org/config.yaml` and cannot validate the version — but it only
+*warns* here; the hard error scenario 4 raises came from the step-2 `.repositories()` call,
+which short-circuiting step 2 now skips entirely. Snapshot then proceeds to its third,
+pre-flight check and aborts there, because `BiocVersion` (required by `metaRNASeq`, Path A) is
+not installed:
 
 ```
 Bioconductor version: unknown version: Bioconductor version cannot be validated; no internet connection?
@@ -516,9 +552,12 @@ renv::status()
 #>   BiocVersion   [* -> *]   (used, not installed)
 ```
 
-Because Bioconductor is never reachable here, `BiocVersion` is never installed, so the
-"snapshot completes but is merely out of sync" state is **unreachable** — the snapshot itself
-aborts first. Emptying `biocViews` (scenario 5) is the only thing that clears it.
+Because Bioconductor is never reachable here, `BiocVersion` is never installed. Under this
+harness's non-interactive `force = FALSE` snapshot the call aborts at pre-flight before writing
+a record; the "snapshot completes but is merely out of sync" state the customer described is the
+*same* failure waved through by `force = TRUE` or an interactive proceed prompt
+(`snapshot.R:335`), which this harness does not exercise. Either way, emptying `biocViews`
+(scenario 5) is the only thing that clears the underlying cause.
 
 **Status: snapshot FAILURE (pre-flight), project OUT OF SYNC.** `artifacts/11/result.json`
 records `snapshot_status: failure`, `snapshot_error_classification: "aborting snapshot due to
@@ -541,17 +580,19 @@ A non-empty `biocViews` field on a CRAN/PPM-installed package (or on the project
 itself) makes renv treat the project as a Bioconductor project. In a CRAN/PPM-only
 environment with Bioconductor unreachable this breaks the project through **two mechanisms**:
 Path A — `biocViews` injects an uninstallable `BiocVersion`, which fails
-`renv::install()`/`restore()`, aborts `renv::snapshot()` at pre-flight, and leaves
-`renv::status()`/`renv::activate()` out of sync; and Path B — the inferred Bioconductor
-source forces a `config.yaml` version check that fails `renv::snapshot()`. The minimal pair
+`renv::install()`/`restore()`, aborts `renv::snapshot()` at pre-flight, and leaves the project
+out of sync (reported by `renv::status()` and by the autoloader at startup); and Path B — the
+inferred Bioconductor source forces a `config.yaml` version check that fails `renv::snapshot()`.
+The minimal pair
 (scenarios 4 vs 5) shows `biocViews` is the sole cause; the workaround scenarios (6, 7, 9, 10)
 show the common Bioconductor-side and renv-option mitigations do not resolve it. And even the
 combination that *does* silence the Path B network probe (scenario 11) does not make the
 project usable: `renv::snapshot()` still aborts at the Path A pre-flight check because the
 injected `BiocVersion` can never be installed from CRAN/PPM — the same reason
-`renv::status()`/`renv::activate()` report the project out of sync. There is no state in which
-the snapshot succeeds and the project is merely out of sync: in a never-reachable-Bioconductor
-environment the snapshot does not complete at all.
+the project reports out of sync at startup. Under this repo's non-interactive `force = FALSE`
+measurement the snapshot does not complete at all; the "snapshot succeeds but is merely out of
+sync" state the customer reported is the same pre-flight failure waved through by `force = TRUE`
+or an interactive proceed prompt (`snapshot.R:335`).
 
 **Recommended path forward:**
 
@@ -559,7 +600,10 @@ environment the snapshot does not complete at all.
   field as Bioconductor — for dependency injection, snapshot source inference, *or* the
   status/sync check — when the package was clearly installed from a non-Bioconductor
   repository. A maintainer-blessed "disable Bioconductor" switch is requested in
-  [renv#2128](https://github.com/rstudio/renv/issues/2128) (open, no flag yet);
+  [renv#2128](https://github.com/rstudio/renv/issues/2128) (open; the pinned renv 1.2.3 exposes
+  no user-facing flag to disable Bioconductor handling in an existing project — only the
+  internal `renv_bioconductor_init()` helper at `bioconductor.R:69`; check current renv before
+  assuming this is still true);
   [renv#2149](https://github.com/rstudio/renv/issues/2149) fixed the *empty*-biocViews case
   but not the non-empty case this repo demonstrates.
 - **Local mitigation**: the only thing shown to fully clear it here is removing the
