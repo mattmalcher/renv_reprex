@@ -6,13 +6,23 @@
 # to pin a different version.
 #
 # Usage:
-#   ./fetch_renv_source.sh          # fetch renv 1.2.3 (default, matches Dockerfile)
-#   ./fetch_renv_source.sh 1.1.4    # fetch a specific version
+#   ./fetch_renv_source.sh                          # fetch dev HEAD commit (matches Dockerfile)
+#   ./fetch_renv_source.sh 1.2.3                    # fetch a released version tag
+#   ./fetch_renv_source.sh b1fd8fa843781b4fdebcd0   # fetch a specific commit SHA
 
 set -euo pipefail
 
-RENV_VERSION="${1:-1.2.3}"
-BASE_URL="https://raw.githubusercontent.com/rstudio/renv/v${RENV_VERSION}/R"
+# Default: dev commit pinned in the Dockerfile
+RENV_REF="${1:-b1fd8fa843781b4fdebcd0e25a78a5cfb15da822}"
+
+# Version tags use v<version> prefix; bare SHAs and 'main' are used as-is
+if [[ "$RENV_REF" =~ ^[0-9]+\.[0-9]+ ]]; then
+  GIT_REF="v${RENV_REF}"
+else
+  GIT_REF="$RENV_REF"
+fi
+
+BASE_URL="https://raw.githubusercontent.com/rstudio/renv/${GIT_REF}/R"
 DEST="$(cd "$(dirname "$0")" && pwd)/renv-source/R"
 
 FILES=(
@@ -22,8 +32,8 @@ FILES=(
 )
 
 mkdir -p "$DEST"
-echo "Fetching renv ${RENV_VERSION} source files from GitHub..."
-echo "  Source: https://github.com/rstudio/renv/tree/v${RENV_VERSION}/R"
+echo "Fetching renv ${GIT_REF} source files from GitHub..."
+echo "  Source: https://github.com/rstudio/renv/tree/${GIT_REF}/R"
 echo "  Dest:   ${DEST}/"
 echo ""
 
@@ -36,5 +46,5 @@ for f in "${FILES[@]}"; do
 done
 
 echo ""
-echo "Done. Version: ${RENV_VERSION}"
+echo "Done. Ref: ${GIT_REF}"
 echo "See renv-source/README.md for annotated line references."

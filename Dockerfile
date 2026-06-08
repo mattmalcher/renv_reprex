@@ -8,12 +8,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgit2-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Pin renv 1.2.3; install jsonlite for diagnostic scripts; use PPM Noble binaries throughout
+# Install renv from a specific dev commit; install jsonlite for diagnostic scripts; use PPM Noble binaries
 ENV PPM_URL=https://packagemanager.posit.co/cran/__linux__/noble/latest
+ENV RENV_DEV_SHA=b1fd8fa843781b4fdebcd0e25a78a5cfb15da822
 RUN R -e "\
   options(repos = c(CRAN = Sys.getenv('PPM_URL', '${PPM_URL}'))); \
   install.packages(c('remotes', 'jsonlite')); \
-  remotes::install_version('renv', version = '1.2.3', upgrade = 'never')"
+  remotes::install_github('rstudio/renv', ref = Sys.getenv('RENV_DEV_SHA'))"
 
 # Allow diagnostic scripts to see system-level jsonlite when renv project is active.
 ENV RENV_CONFIG_EXTERNAL_LIBRARIES=/usr/local/lib/R/site-library
