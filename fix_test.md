@@ -80,22 +80,38 @@ A complete fix would need one of:
   hostnames (`packagemanager.posit.co`, `packagemanager.rstudio.com`) rather
   than against the user-assigned name.
 
-## Needs verification: are we conflating package metadata with repo name?
+## Package metadata vs repo name
 
-**This section needs verification before being relied upon.**
-
-The argument above may conflate two distinct things:
+The argument above turns on two distinct things:
 
 - **Package metadata** — `Repository: RSPM` is a fixed identifier PPM bakes into
   every tarball it serves, representing PPM's identity as the serving infrastructure.
 - **Repo name** — the label the user (or administrator) assigns to the PPM URL in
   `options(repos)`, e.g. `c(CRAN = "https://packagemanager.posit.co/...")`.
 
-For CRAN these coincide by convention: the field value and the user's repo name
-are both `"CRAN"`. renv's fix (`repository %in% names(getOption("repos"))`) relies
-on this coincidence holding universally — it treats the `Repository` field as if it
-were the user's repo name. For PPM the two are different: the field is a fixed
-service identifier (`"RSPM"`), independent of what the user called the repo.
+**The root cause is a namespace mismatch.** renv takes a value from the *package
+metadata* namespace (the `Repository` DESCRIPTION field) and matches it against the
+*session configuration* namespace (the names and URLs in `options(repos)`):
+
+```r
+repository <- dcf[["Repository"]]              # package metadata: "RSPM"
+repository %in% names(getOption("repos"))      # session config:   c("CRAN")
+any(renv_repos_matches(repository, repos))     # session config:   the repo URLs
+```
+
+`renv_repos_matches()` is just `url %in% repos` after trimming slashes — an exact
+string compare, with no host parsing. So the field value can only match if it is
+*literally identical* to a repo name or a full repo URL. These are different
+namespaces that happen to collide for CRAN and nothing else:
+
+- For CRAN they coincide by convention — the field value and the conventional repo
+  name are both `"CRAN"`, so the comparison succeeds.
+- For PPM they don't — the field is a fixed service identifier (`"RSPM"`),
+  independent of what the user named the repo, and it is neither a repo name nor a
+  URL, so no branch can ever match.
+
+renv's fix relies on the CRAN coincidence holding universally. It does not: a
+metadata stamp is not a repo name.
 
 **Posit's own documentation reinforces the mismatch.** The [Workbench + Package
 Manager admin guide](https://docs.posit.co/rspm/admin/workbench.html#internal-packages-and-cran-packages)
@@ -113,9 +129,14 @@ Following this guidance, the session repos will be `c(CRAN = "https://...")`, so
 `names(getOption("repos"))` will be `"CRAN"` — and `"RSPM" %in% c("CRAN")` is
 always `FALSE`.
 
-**What needs checking:** whether R's `install.packages()` overwrites the
-`Repository` field at install time (e.g. with the user's repo name), or preserves
-the value already in the tarball. We observed `Repository: RSPM` in both the raw
-tarball and the installed package, which is consistent with R preserving the
-tarball value — but this has not been confirmed against R source or tested with a
-repo named `"RSPM"`.
+**Confirmed: R preserves the tarball value.** The installed `DESCRIPTION` captured
+in `artifacts/4` shows `Repository: RSPM` — identical to the value in the raw PPM
+tarball (verified above). R's `install.packages()` does not overwrite the
+`Repository` field with the user's repo name; it preserves whatever PPM stamped.
+So the value renv reads at restore time is the fixed service identifier (`"RSPM"`),
+never the user's repo name.
+
+The one case not yet exercised is a session that *names* its PPM repo `"RSPM"` in
+`options(repos)` (rather than `"CRAN"`). There step 4 would match and the fix would
+work — but that naming is non-standard and contradicts Posit's own admin guidance
+above, so it does not describe the typical PPM user.
